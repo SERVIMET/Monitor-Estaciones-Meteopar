@@ -62,7 +62,7 @@ ESTACIONES_DIRECTEMAR = [
 ]
 
 # ==========================================
-# ESTACIONES EXTERNAS / WEATHERLINK / CAMPBELL
+# ESTACIONES EXTERNAS / WEATHERLINK
 # ==========================================
 ESTACIONES_EXTERNAS = [
     {
@@ -71,20 +71,6 @@ ESTACIONES_EXTERNAS = [
         "lat": -53.150,
         "lon": -70.916,
         "tipo": "weatherlink"
-    },
-    {
-        "nombre": "Bahía Fildes",
-        "url": "http://192.168.80.190/tables.html",
-        "lat": -62.195,
-        "lon": -58.950,
-        "tipo": "campbell"
-    },
-    {
-        "nombre": "Faro Cabo de Hornos",
-        "url": "http://192.168.91.103/tables.html",
-        "lat": -55.978,
-        "lon": -67.262,
-        "tipo": "campbell"
     }
 ]
 
@@ -95,8 +81,6 @@ ORDEN_ESTACIONES = [
     "Alcaldía de Mar Puerto Navarino",
     "Alcaldía de Mar Puerto Corrientes",
     "Asmar Magallanes",
-    "Bahía Fildes",
-    "Faro Cabo de Hornos",
 ]
 
 def obtener_hora_chile():
@@ -276,7 +260,7 @@ def consultar_directemar(est):
         print(f"Error Directemar {est['nombre']}: {e}")
         return False, "SIN CONEXIÓN", "Error de red", "--", "--", "--", "", "--", "--"
 
-def consultar_estacion_externa(est):
+def consultar_asmar_magallanes(est):
     try:
         req = urllib.request.Request(est["url"], headers=HEADERS)
         with urllib.request.urlopen(req, timeout=10, context=ctx) as response:
@@ -287,55 +271,49 @@ def consultar_estacion_externa(est):
             temp, pres, viento, dir_viento, racha, precipitacion = "--", "--", "--", "", "--", "--"
             pres_val = None
 
-            # Extracción genérica de temperatura
-            temp_match = re.search(r'(?:Temperatura|Temperature|[^\w]Temp)[^\d\-]*([\-]?\d+(?:[.,]\d+)?)', texto_plano, re.IGNORECASE)
+            temp_match = re.search(r'([\-]?\d+(?:[.,]\d+)?)\s*°C', texto_plano)
             if temp_match:
                 val = convertir_numero(temp_match.group(1))
                 if val is not None:
                     temp = f"{val:.1f}°C"
 
-            # Extracción de presión barométrica
-            pres_match = re.search(r'(?:Barometer|Presi[oó]n|Sea_level|Station_level)[^\d\-]*([\-]?\d+(?:[.,]\d+)?)\s*(?:hPa|mb)?', texto_plano, re.IGNORECASE)
+            pres_match = re.search(r'Barometer:\s*([\d]+[.,]\d+)\s*hPa', texto_plano, re.IGNORECASE)
             if pres_match:
                 pres_val = convertir_numero(pres_match.group(1))
                 if pres_val is not None:
                     tendencia = gestionar_historial_presion(est["nombre"], pres_val)
                     pres = f"{pres_val:.1f} hPa{tendencia}"
 
-            # Extracción de viento
-            viento_match = re.search(r'(?:Wind\s*Speed|Viento)[^\d]*(\d+(?:[.,]\d+)?)\s*(?:kts|kt|knots|nudos)?', texto_plano, re.IGNORECASE)
+            viento_match = re.search(r'Wind:\s*([\d]+[.,]\d+)\s*(?:knots|kts|kt|nudos)?\s*([N,S,E,W]{1,3})?', texto_plano, re.IGNORECASE)
             if viento_match:
                 val = convertir_numero(viento_match.group(1))
                 if val is not None:
                     viento = f"{val:.1f} kt"
+                if viento_match.group(2):
+                    dir_viento = formatear_direccion(viento_match.group(2))
 
-            # Extracción de racha
-            racha_match = re.search(r'(?:Gust|Racha|Ráfaga|Rafaga)[^\d]*(\d+(?:[.,]\d+)?)\s*(?:kts|kt|knots|nudos)?', texto_plano, re.IGNORECASE)
+            racha_match = re.search(r'High\s*gust\s*([\d]+[.,]\d+)\s*(?:knots|kts|kt|nudos)?', texto_plano, re.IGNORECASE)
             if racha_match:
                 val = convertir_numero(racha_match.group(1))
                 if val is not None:
                     racha = f"{val:.1f} kt"
 
-            # Extracciones complementarias para WeatherLink / Campbell
-            if est["tipo"] == "weatherlink":
-                # Patrones específicos para WeatherLink si vienen en formato texto plano
-                for linea in texto_plano.split('.'):
-                    if 'Barometer' in linea:
-                        p_m = re.search(r'([\d]+[.,]\d+)', linea)
-                        if p_m:
-                            pres_val = convertir_numero(p_m.group(1))
-                            if pres_val:
-                                tendencia = gestionar_historial_presion(est["nombre"], pres_val)
-                                pres = f"{pres_val:.1f} hPa{tendencia}"
+            rain_match = re.search(r'Rain:\s*([\d]+[.,]\d+)\s*mm', texto_plano, re.IGNORECASE)
+            if rain_match:
+                val = convertir_numero(rain_match.group(1))
+                if val is not None:
+                    precipitacion = f"{val:.1f} mm"
 
-            es_valido = (pres_val is not None or temp != "--" or viento != "--")
+            match_fecha = re.search(r'Weather\s*Conditions\s*as\s*of:\s*([\d:]+\s+\w+,\s+\w+\s+\d+,\s+\d+)', texto_plano, re.IGNORECASE)
+            ultimo_str = match_fecha.group(1) if match_fecha else obtener_hora_chile().strftime("%d-%m-%Y %H:%M")
+
+            es_valido = (pres_val is not None or temp != "--")
             estado_txt = "OPERATIVA" if es_valido else "SIN DATOS VÁLIDOS"
-            ultimo_str = obtener_hora_chile().strftime("%d-%m-%Y %H:%M")
 
             return es_valido, estado_txt, ultimo_str, temp, pres, viento, dir_viento, racha, precipitacion
 
     except Exception as e:
-        print(f"Error Estación Externa [{est['nombre']}]: {e}")
+        print(f"Error en Asmar Magallanes: {e}")
         return False, "SIN CONEXIÓN", "Error de red", "--", "--", "--", "", "--", "--"
 
 def generar_html(resultados_totales, hay_alerta):
@@ -396,7 +374,7 @@ def generar_html(resultados_totales, hay_alerta):
         """
 
     alerta_class = "alerta-activa" if hay_alerta else ""
-    alerta_banner = '<div class="banner-alerta">⚠️ ¡ATENCIÓN: HAY ESTACIONES CON FALLAS O DESACTUALIZADAS! ⚠️️</div>' if hay_alerta else ""
+    alerta_banner = '<div class="banner-alerta">⚠️ ¡ATENCIÓN: HAY ESTACIONES CON FALLAS O DESACTUALIZADAS! ⚠️</div>' if hay_alerta else ""
     hora_actual_chile = obtener_hora_chile().strftime("%d-%m-%Y %H:%M:%S")
 
     html = f"""<!DOCTYPE html>
@@ -638,7 +616,7 @@ def generar_html(resultados_totales, hay_alerta):
     </div>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        var map = L.map('map').setView([-55.0, -70.0], 5);
+        var map = L.map('map').setView([-52.5, -71.0], 6);
         L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
             maxZoom: 12, attribution: '© OpenStreetMap contributors'
         }}).addTo(map);
@@ -720,7 +698,7 @@ def ejecutar_monitoreo():
         }
 
     for est in ESTACIONES_EXTERNAS:
-        ok, estado, ultimo, temp, pres, viento, dir_viento, racha, precipitacion = consultar_estacion_externa(est)
+        ok, estado, ultimo, temp, pres, viento, dir_viento, racha, precipitacion = consultar_asmar_magallanes(est)
         if not ok: hubo_fallas = True
         resultados_dict[est["nombre"]] = {
             "nombre": est["nombre"], "url": est["url"], "lat": est["lat"], "lon": est["lon"],
