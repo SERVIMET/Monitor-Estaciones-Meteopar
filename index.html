@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="30">
+    <title>Monitor de Estaciones Automáticas - Magallanes</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            --bg-color: #f4f6f9;
+            --text-color: #1e293b;
+            --h1-color: #0f2942;
+            --sub2-color: #1e40af;
+            --sub-color: #64748b;
+            --summary-bg: #ffffff;
+            --summary-border: #cbd5e1;
+            --summary-text: #0f2942;
+            --card-ok-bg: linear-gradient(135deg, #dbeafe 0%, #cbd5e1 55%, #94a3b8 100%);
+            --card-ok-border: #94a3b8;
+            --card-error-bg: linear-gradient(135deg, #fee2e2 0%, #fecaca 55%, #f87171 100%);
+            --card-error-border: #f87171;
+            --station-name-color: #0f172a;
+            --item-bg: rgba(255, 255, 255, 0.9);
+            --item-border: rgba(255, 255, 255, 0.95);
+            --item-text: #0f172a;
+            --time-color: #334155;
+            --click-color: #1d4ed8;
+            --wind-color: #1d4ed8;
+            --footer-border: rgba(255, 255, 255, 0.4);
+        }
+
+        body.dark-mode {
+            --bg-color: #121212;
+            --text-color: #e0e0e0;
+            --h1-color: #ffffff;
+            --sub2-color: #60a5fa;
+            --sub-color: #94a3b8;
+            --summary-bg: #1e1e1e;
+            --summary-border: #333333;
+            --summary-text: #ffffff;
+            --card-ok-bg: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            --card-ok-border: #334155;
+            --card-error-bg: linear-gradient(135deg, #450a0a 0%, #7f1d1d 100%);
+            --card-error-border: #991b1b;
+            --station-name-color: #f8fafc;
+            --item-bg: rgba(30, 41, 59, 0.85);
+            --item-border: rgba(51, 65, 85, 0.8);
+            --item-text: #f1f5f9;
+            --time-color: #cbd5e1;
+            --click-color: #60a5fa;
+            --wind-color: #60a5fa;
+            --footer-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-color); padding: 15px; margin: 0; transition: background-color 0.3s ease, color 0.3s ease; }
+        h1 { text-align: center; color: var(--h1-color); margin-bottom: 0; font-size: 22px; line-height: 1.2; font-weight: 700; }
+        .subtitle-line2 { text-align: center; color: var(--sub2-color); margin-bottom: 6px; font-size: 16px; font-weight: bold; }
+        .subtitle { text-align: center; color: var(--sub-color); margin-bottom: 12px; font-size: 12px; }
+        .summary { text-align: center; font-weight: bold; margin-bottom: 15px; color: var(--summary-text); font-size: 14px; background: var(--summary-bg); padding: 6px 16px; border-radius: 20px; max-width: 280px; margin-left: auto; margin-right: auto; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border: 1px solid var(--summary-border); }
+        
+        @keyframes parpadeoFondo { 
+            0% { background-color: var(--bg-color); } 
+            50% { background-color: #fca5a5; } 
+            100% { background-color: var(--bg-color); } 
+        }
+        body.alerta-activa { animation: parpadeoFondo 1.5s infinite; }
+        
+        body.dark-mode.alerta-activa { 
+            animation: none !important; 
+            background-color: #121212 !important; 
+        }
+
+        .banner-alerta { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; text-align: center; font-weight: bold; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); }
+        #map { height: 350px; width: 100%; max-width: 1200px; margin: 0 auto 20px auto; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border: 1px solid var(--summary-border); }
+        
+        .grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); 
+            gap: 15px; 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            align-items: stretch; 
+        }
+        
+        .card-link { text-decoration: none; color: inherit; display: flex; flex-direction: column; height: 100%; }
+        .card { 
+            border-radius: 14px; 
+            padding: 10px 10px; 
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%; 
+            box-sizing: border-box;
+        }
+        .card.ok { 
+            background: var(--card-ok-bg); 
+            border: 1px solid var(--card-ok-border);
+            border-left: 6px solid #16a34a; 
+        }
+        .card.error { 
+            background: var(--card-error-bg); 
+            border: 1px solid var(--card-error-border);
+            border-left: 6px solid #dc2626; 
+        }
+        .card:hover { 
+            transform: translateY(-3px); 
+            box-shadow: 0 8px 20px rgba(30, 64, 175, 0.2); 
+        }
+        .card.error:hover {
+            box-shadow: 0 8px 20px rgba(220, 38, 38, 0.3); 
+        }
+        
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+        .station-name { font-weight: bold; font-size: 13.5px; color: var(--station-name-color); line-height: 1.1; }
+        .status-badge { font-size: 11px; }
+        
+        .card-body-content {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin: 4px 0;
+        }
+        .row-top, .row-bottom {
+            display: grid;
+            gap: 4px;
+        }
+        .row-top {
+            grid-template-columns: 1.1fr 1fr 1fr;
+        }
+        .row-bottom {
+            grid-template-columns: 1fr 1fr;
+        }
+        
+        .item-box {
+            background: var(--item-bg);
+            padding: 4px 2px;
+            border-radius: 6px;
+            border: 1px solid var(--item-border);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            white-space: nowrap;
+            color: var(--item-text);
+        }
+        .temp-box {
+            font-size: 0.85em;
+            font-weight: 800;
+            color: var(--item-text);
+        }
+        
+        .card-footer-info { display: flex; justify-content: space-between; align-items: center; margin-top: 2px; border-top: 1px solid var(--footer-border); padding-top: 3px; }
+        .time { font-size: 0.68em; color: var(--time-color); }
+        .click-text { font-size: 0.68em; color: var(--click-color); font-weight: bold; font-style: italic; }
+        
+        .footer-dev { background: linear-gradient(135deg, #0f2942, #1e3a8a); color: #f8fafc; text-align: center; font-weight: 600; padding: 10px 24px; border-radius: 30px; margin: 30px auto 15px auto; display: table; font-size: 13px; box-shadow: 0 4px 12px rgba(15, 41, 66, 0.2); border: 1px solid rgba(255,255,255,0.15); }
+        
+        .floating-controls {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            z-index: 1000;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--summary-bg);
+            color: var(--text-color);
+            border: 1px solid var(--summary-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            transition: all 0.2s ease;
+            padding: 0;
+        }
+        
+        .icon-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .wind-unit-btn {
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                padding-right: 45px;
+                font-size: 19px;
+            }
+            .floating-controls {
+                top: 8px;
+                right: 8px;
+            }
+            .icon-btn {
+                width: 32px;
+                height: 32px;
+                font-size: 12px;
+            }
+            .wind-unit-btn {
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body class="alerta-activa">
+    <div class="floating-controls">
+        <button class="icon-btn" onclick="toggleDarkMode()" id="darkModeBtn" title="Cambiar Modo Oscuro/Claro">🌙</button>
+        <button class="icon-btn wind-unit-btn" onclick="toggleWindUnit()" id="windUnitBtn" title="Cambiar Unidad de Viento">kt</button>
+    </div>
+    <h1>Monitor de Estaciones Automáticas</h1>
+    <div class="subtitle-line2">Centro Zonal de Meteorología Marina de Magallanes y Antártica Chilena</div>
+    <div class="subtitle">Última verificación: 29-09-2026 11:00:00 (Tolerancia: 12 min)</div>
+    <div class="banner-alerta">⚠️ ¡ATENCIÓN: HAY ESTACIONES CON FALLAS O DESACTUALIZADAS! ⚠️</div>
+    <div class="summary">Estaciones Operativas: 1 de 2</div>
+    <div id="map"></div>
+    <div class="grid">
+        
+        <!-- Ejemplo Estación Punta Arenas -->
+        <a href="http://web.directemar.cl/met/jturno/estaciones/punta_arenas/index.htm" target="_blank" class="card-link">
+            <div class="card ok">
+                <div class="card-header">
+                    <span class="station-name">Gobernación Marítima de Punta Arenas</span>
+                    <span class="status-badge">🟢</span>
+                </div>
+                <div class="card-body-content">
+                    <div class="row-top">
+                        <div class="item-box temp-box">🌡️ 6.5°C</div>
+                        <div class="item-box"><span style="display: block; font-size: 0.58em; color: var(--wind-color, #1d4ed8); font-weight: 800; line-height: 1.1;">🌬️ W/NW</span><span style="display: block; font-size: 0.72em; font-weight: 700; line-height: 1.1;">8.0 kt</span></div>
+                        <div class="item-box"><span style="font-size: 0.58em; color: var(--wind-color, #1d4ed8); font-weight: 800; display: block; line-height: 1.1;">💨 RACHA</span><span style="font-size: 0.72em; font-weight: 700; line-height: 1.1;">15.0 kt</span></div>
+                    </div>
+                    <div class="row-bottom">
+                        <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">⏲️ 1012.4 hPa ↗</span></div>
+                        <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">🌧️ 0.0 mm</span></div>
+                    </div>
+                </div>
+                <div class="card-footer-info">
+                    <span class="time">Reporte: 29-09-2026 10:50:00</span>
+                    <span class="click-text">Ver ↗</span>
+                </div>
+            </div>
+        </a>
+
+        <!-- Ejemplo Estación Porvenir (Error simulado o sin conexión) -->
+        <a href="http://web.directemar.cl/met/jturno/estaciones/porvenir/index.htm" target="_blank" class="card-link">
+            <div class="card error">
+                <div class="card-header">
+                    <span class="station-name">Capitanía de Puerto Porvenir</span>
+                    <span class="status-badge">🔴</span>
+                </div>
+                <div class="card-body-content">
+                    <div class="row-top">
+                        <div class="item-box temp-box">🌡️️ --</div>
+                        <div class="item-box"><span style="display: block; font-size: 0.58em; color: transparent; font-weight: 800; line-height: 1.1; user-select: none;">-</span><span style="display: block; font-size: 0.72em; font-weight: 700; line-height: 1.1;">--</span></div>
+                        <div class="item-box"><span style="font-size: 0.58em; color: var(--wind-color, #1d4ed8); font-weight: 800; display: block; line-height: 1.1;">💨 RACHA</span><span style="font-size: 0.72em; font-weight: 700; line-height: 1.1;">--</span></div>
+                    </div>
+                    <div class="row-bottom">
+                        <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">⏲️ --</span></div>
+                        <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">🌧️ --</span></div>
+                    </div>
+                </div>
+                <div class="card-footer-info">
+                    <span class="time">Reporte: Error de red</span>
+                    <span class="click-text">Ver ↗</span>
+                </div>
+            </div>
+        </a>
+
+    </div>
+    <div style="text-align: center;">
+        <div class="footer-dev">Desarrollado por Sgto 2° (Met.) Luis Diego Achurra Garcés</div>
+    </div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Mapa centrado en la región de Magallanes (Punta Arenas aprox)
+        var map = L.map('map').setView([-53.16, -70.91], 7);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 12, attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        L.circleMarker([-53.163, -70.917], {
+            color: 'green', fillColor: 'green', fillOpacity: 0.8, radius: 9
+        }).addTo(map).bindPopup("<b>Gobernación Marítima de Punta Arenas</b><br>Estado: OPERATIVA<br>Temp: 6.5°C | Viento: 8.0 kt (W/NW) | Racha: 15.0 kt | Pres: 1012.4 hPa ↗ | Lluvia: 0.0 mm<br>Reporte: 29-09-2026 10:50:00<br><a href='http://web.directemar.cl/met/jturno/estaciones/punta_arenas/index.htm' target='_blank'>Abrir enlace ↗</a>");
+        
+        L.circleMarker([-53.295, -70.366], {
+            color: 'red', fillColor: 'red', fillOpacity: 0.8, radius: 9
+        }).addTo(map).bindPopup("<b>Capitanía de Puerto Porvenir</b><br>Estado: SIN CONEXIÓN<br>Temp: -- | Viento: -- | Racha: -- | Pres: -- | Lluvia: --<br>Reporte: Error de red<br><a href='http://web.directemar.cl/met/jturno/estaciones/porvenir/index.htm' target='_blank'>Abrir enlace ↗</a>");
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('darkMode', isDark ? 'enabled' : 'disabled');
+            updateButtonText(isDark);
+        }
+
+        function updateButtonText(isDark) {
+            const btn = document.getElementById('darkModeBtn');
+            if (btn) btn.innerHTML = isDark ? '☀️' : '🌙';
+        }
+
+        if (localStorage.getItem('darkMode') === 'enabled') {
+            document.body.classList.add('dark-mode');
+            updateButtonText(true);
+        }
+
+        let windInKnots = true;
+
+        function toggleWindUnit() {
+            windInKnots = !windInKnots;
+            localStorage.setItem('windUnit', windInKnots ? 'kt' : 'khr');
+            updateWindDisplay();
+        }
+
+        function updateWindDisplay() {
+            const btn = document.getElementById('windUnitBtn');
+            if (btn) btn.innerHTML = windInKnots ? 'kt' : 'kmh';
+
+            const itemBoxes = document.querySelectorAll('.card-body-content .item-box');
+            itemBoxes.forEach(box => {
+                let text = box.innerHTML;
+                if (text.includes('kt') || text.includes('k/hr')) {
+                    box.innerHTML = text.replace(/([\d.,]+)\s*(kt|k\/hr)/gi, (match, p1, p2) => {
+                        let num = parseFloat(p1.replace(',', '.'));
+                        if (isNaN(num)) return match;
+                        if (!windInKnots && p2.toLowerCase() === 'kt') {
+                            let converted = (num * 1.852).toFixed(1).replace('.', ',');
+                            return `${converted} k/hr`;
+                        } else if (windInKnots && p2.toLowerCase() !== 'kt') {
+                            let converted = (num / 1.852).toFixed(1).replace('.', ',');
+                            return `${converted} kt`;
+                        }
+                        return match;
+                    });
+                }
+            });
+        }
+
+        if (localStorage.getItem('windUnit') === 'khr') {
+            windInKnots = false;
+            setTimeout(updateWindDisplay, 100);
+        }
+    </script>
+</body>
+</html>
