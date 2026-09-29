@@ -62,17 +62,30 @@ ESTACIONES_DIRECTEMAR = [
 ]
 
 # ==========================================
-# FAROS WEATHER UNDERGROUND (Opcional / Austral)
+# ESTACIONES EXTERNAS / WEATHERLINK / CAMPBELL
 # ==========================================
-ESTACIONES_FAROS = [
-    # Puedes agregar estaciones Weather Underground de la zona austral aquí si lo requieres
-]
-
-# ==========================================
-# ESTACIONES IFOP / API JSON (Opcional / Austral)
-# ==========================================
-ESTACIONES_IFOP = [
-    # Puedes agregar estaciones IFOP de la zona austral aquí si lo requieres
+ESTACIONES_EXTERNAS = [
+    {
+        "nombre": "Asmar Magallanes",
+        "url": "https://weatherlink.com/embeddablePage/show/aa24908f6c68472ba163e55765986705/realtime.txt",
+        "lat": -53.150,
+        "lon": -70.916,
+        "tipo": "weatherlink"
+    },
+    {
+        "nombre": "Bahía Fildes",
+        "url": "http://192.168.80.190/tables.html",
+        "lat": -62.195,
+        "lon": -58.950,
+        "tipo": "campbell"
+    },
+    {
+        "nombre": "Faro Cabo de Hornos",
+        "url": "http://192.168.91.103/tables.html",
+        "lat": -55.978,
+        "lon": -67.262,
+        "tipo": "campbell"
+    }
 ]
 
 ORDEN_ESTACIONES = [
@@ -81,6 +94,9 @@ ORDEN_ESTACIONES = [
     "Alcaldía de Mar Paso Timbales",
     "Alcaldía de Mar Puerto Navarino",
     "Alcaldía de Mar Puerto Corrientes",
+    "Asmar Magallanes",
+    "Bahía Fildes",
+    "Faro Cabo de Hornos",
 ]
 
 def obtener_hora_chile():
@@ -260,157 +276,67 @@ def consultar_directemar(est):
         print(f"Error Directemar {est['nombre']}: {e}")
         return False, "SIN CONEXIÓN", "Error de red", "--", "--", "--", "", "--", "--"
 
-def consultar_wunderground_web(est):
+def consultar_estacion_externa(est):
     try:
-        api_url = f"https://api.weather.com/v2/pws/observations/current?stationId={est['id']}&format=json&units=e&apiKey=e1f10a1e78da46f5b10a1e78da96f525"
-        req = urllib.request.Request(api_url, headers=HEADERS)
+        req = urllib.request.Request(est["url"], headers=HEADERS)
         with urllib.request.urlopen(req, timeout=10, context=ctx) as response:
-            data = json.loads(response.read().decode("utf-8"))
-            obs = data["observations"][0]
-            imperial = obs["imperial"]
+            html = response.read().decode("utf-8", errors="ignore")
+            texto_plano = re.sub(r'<[^>]+>', ' ', html)
+            texto_plano = re.sub(r'\s+', ' ', texto_plano).strip()
 
-            temp_f = imperial.get("temp")
-            temp = f"{(temp_f - 32.0) * 5.0 / 9.0:.1f}°C" if temp_f is not None else "--"
+            temp, pres, viento, dir_viento, racha, precipitacion = "--", "--", "--", "", "--", "--"
+            pres_val = None
 
-            pres_inHg = imperial.get("pressure")
-            pres = "--"
-            if pres_inHg is not None:
-                pres_val = pres_inHg * 33.86389
-                tendencia = gestionar_historial_presion(est["nombre"], pres_val)
-                pres = f"{pres_val:.1f} hPa{tendencia}"
+            # Extracción genérica de temperatura
+            temp_match = re.search(r'(?:Temperatura|Temperature|[^\w]Temp)[^\d\-]*([\-]?\d+(?:[.,]\d+)?)', texto_plano, re.IGNORECASE)
+            if temp_match:
+                val = convertir_numero(temp_match.group(1))
+                if val is not None:
+                    temp = f"{val:.1f}°C"
 
-            viento_mph = imperial.get("windSpeed")
-            viento = f"{viento_mph / 1.15077945:.1f} kt" if viento_mph is not None else "--"
+            # Extracción de presión barométrica
+            pres_match = re.search(r'(?:Barometer|Presi[oó]n|Sea_level|Station_level)[^\d\-]*([\-]?\d+(?:[.,]\d+)?)\s*(?:hPa|mb)?', texto_plano, re.IGNORECASE)
+            if pres_match:
+                pres_val = convertir_numero(pres_match.group(1))
+                if pres_val is not None:
+                    tendencia = gestionar_historial_presion(est["nombre"], pres_val)
+                    pres = f"{pres_val:.1f} hPa{tendencia}"
 
-            gust_mph = imperial.get("windGust")
-            racha = f"{gust_mph / 1.15077945:.1f} kt" if gust_mph is not None else "--"
+            # Extracción de viento
+            viento_match = re.search(r'(?:Wind\s*Speed|Viento)[^\d]*(\d+(?:[.,]\d+)?)\s*(?:kts|kt|knots|nudos)?', texto_plano, re.IGNORECASE)
+            if viento_match:
+                val = convertir_numero(viento_match.group(1))
+                if val is not None:
+                    viento = f"{val:.1f} kt"
 
-            wind_dir_deg = obs.get("winddir")
-            dir_viento = grados_a_cardinal(wind_dir_deg)
+            # Extracción de racha
+            racha_match = re.search(r'(?:Gust|Racha|Ráfaga|Rafaga)[^\d]*(\d+(?:[.,]\d+)?)\s*(?:kts|kt|knots|nudos)?', texto_plano, re.IGNORECASE)
+            if racha_match:
+                val = convertir_numero(racha_match.group(1))
+                if val is not None:
+                    racha = f"{val:.1f} kt"
 
-            precip_in = imperial.get("precipTotal", 0.0)
-            if precip_in is not None:
-                precip_mm = precip_in * 25.4
-                precipitacion = f"{precip_mm:.1f} mm"
-            else:
-                precipitacion = "0.0 mm"
+            # Extracciones complementarias para WeatherLink / Campbell
+            if est["tipo"] == "weatherlink":
+                # Patrones específicos para WeatherLink si vienen en formato texto plano
+                for linea in texto_plano.split('.'):
+                    if 'Barometer' in linea:
+                        p_m = re.search(r'([\d]+[.,]\d+)', linea)
+                        if p_m:
+                            pres_val = convertir_numero(p_m.group(1))
+                            if pres_val:
+                                tendencia = gestionar_historial_presion(est["nombre"], pres_val)
+                                pres = f"{pres_val:.1f} hPa{tendencia}"
 
-            obs_time = obs.get("obsTimeLocal", "Reciente")
-            return True, "OPERATIVA", temp, pres, viento, dir_viento, racha, precipitacion, str(obs_time)
-    except Exception as e:
-        print(f"Error WU [{est['nombre']}]: {e}")
-        
-    return False, "SIN CONEXIÓN", "--", "--", "--", "", "--", "--", "Error de red"
+            es_valido = (pres_val is not None or temp != "--" or viento != "--")
+            estado_txt = "OPERATIVA" if es_valido else "SIN DATOS VÁLIDOS"
+            ultimo_str = obtener_hora_chile().strftime("%d-%m-%Y %H:%M")
 
-def consultar_ifop(est):
-    try:
-        req = urllib.request.Request(est["api_url"], headers=HEADERS)
-        with urllib.request.urlopen(req, timeout=10, context=ctx) as response:
-            texto_raw = response.read().decode("utf-8")
-            data = json.loads(texto_raw)
-
-            if isinstance(data, dict):
-                def extraer_datos_serie():
-                    val_t, fecha_t, val_p, p_pasado, val_v, val_r, val_d, val_pp = None, None, None, None, None, None, None, None
-                    hoy_chile = obtener_hora_chile().date()
-                    
-                    for k, serie in data.items():
-                        if isinstance(serie, dict):
-                            k_lower = k.lower().strip()
-                            lista_data = serie.get("data", [])
-                            
-                            if isinstance(lista_data, list) and len(lista_data) > 0:
-                                item_data = lista_data[0]
-                                if isinstance(item_data, dict) and "y" in item_data:
-                                    y_vals = item_data["y"]
-                                    x_vals = item_data.get("x", [])
-                                    if isinstance(y_vals, list) and len(y_vals) > 0:
-                                        actual = y_vals[-1]
-                                        f_act = x_vals[-1] if x_vals and len(x_vals) > 0 else None
-                                        
-                                        if any(sub in k_lower for sub in ["temp", "temperatura", "ta", "t_aire"]):
-                                            val_t, fecha_t = actual, f_act
-                                        elif any(sub in k_lower for sub in ["pres", "presion", "barom", "qfe", "qff"]):
-                                            val_p = actual
-                                            if len(y_vals) >= 180:
-                                                p_pasado = y_vals[-180]
-                                            elif len(y_vals) > 1:
-                                                p_pasado = y_vals[0]
-                                        elif any(sub in k_lower for sub in ["dir_viento", "dd", "dir", "direccion"]):
-                                            val_d = actual
-                                        elif any(sub in k_lower for sub in ["ff", "viento", "speed", "vel", "intensidad"]):
-                                            val_v = actual
-                                        elif any(sub in k_lower for sub in ["racha", "ráfaga", "rafaga", "gust", "max", "fx", "vmax", "vel_max"]):
-                                            val_r = actual
-                                        elif any(sub in k_lower for sub in ["lluvia", "pp", "precip", "precipitacion", "agua", "acum", "mm", "rain"]):
-                                            valores_hoy = []
-                                            if isinstance(x_vals, list) and len(x_vals) == len(y_vals):
-                                                for xv, yv in zip(x_vals, y_vals):
-                                                    if yv is not None and isinstance(yv, (int, float)):
-                                                        try:
-                                                            if isinstance(xv, (int, float)):
-                                                                dt = datetime.fromtimestamp(xv / 1000.0 if xv > 1e11 else xv, tz=ZONA_CHILE)
-                                                            elif isinstance(xv, str):
-                                                                dt = datetime.fromisoformat(xv.replace('Z', '+00:00')).astimezone(ZONA_CHILE)
-                                                            else:
-                                                                dt = None
-                                                            
-                                                            if dt and dt.date() == hoy_chile:
-                                                                valores_hoy.append(yv)
-                                                        except Exception:
-                                                            pass
-                                            
-                                            if valores_hoy:
-                                                val_pp = max(valores_hoy)
-                                            else:
-                                                val_pp = y_vals[-1]
-
-                    return val_t, fecha_t, val_p, p_pasado, val_v, val_r, val_d, val_pp
-
-                temp_val, fecha_temp, pres_val, pres_pasado_val, viento_val, racha_val, dir_val, pp_val = extraer_datos_serie()
-
-                temp_f = convertir_numero(temp_val)
-                temp = f"{temp_f:.1f}°C" if temp_f is not None else "--"
-
-                pres_f = convertir_numero(pres_val)
-                tendencia_ifop = ""
-                if pres_f is not None:
-                    p_pasado_f = convertir_numero(pres_pasado_val)
-                    if p_pasado_f is not None:
-                        dif = pres_f - p_pasado_f
-                        if dif > 0.2: tendencia_ifop = " ↗"
-                        elif dif < -0.2: tendencia_ifop = " ↘"
-                        else: tendencia_ifop = " ➔"
-                    pres = f"{pres_f:.1f} hPa{tendencia_ifop}"
-                else:
-                    pres = "--"
-
-                viento_f = convertir_numero(viento_val)
-                viento = f"{viento_f:.1f} kt" if viento_f is not None else "--"
-
-                racha_f = convertir_numero(racha_val)
-                racha = f"{racha_f:.1f} kt" if racha_f is not None else "--"
-
-                pp_f = convertir_numero(pp_val)
-                precipitacion = f"{pp_f:.1f} mm" if pp_f is not None else "--"
-
-                dir_num = convertir_numero(dir_val)
-                if dir_num is not None:
-                    dir_viento = grados_a_cardinal(dir_num)
-                else:
-                    dir_viento = formatear_direccion(str(dir_val)) if dir_val is not None else ""
-
-                fecha_str = str(fecha_temp) if fecha_temp else "Reciente"
-                es_valido = (temp_f is not None or viento_f is not None or pres_f is not None or pp_f is not None)
-                estado_txt = "OPERATIVA" if es_valido else "SIN DATOS VÁLIDOS"
-
-                return es_valido, estado_txt, fecha_str, temp, pres, viento, dir_viento, racha, precipitacion
-
-            return False, "DATOS NO VÁLIDOS", "Estructura desconocida", "--", "--", "--", "", "--", "--"
+            return es_valido, estado_txt, ultimo_str, temp, pres, viento, dir_viento, racha, precipitacion
 
     except Exception as e:
-        print(f"Error IFOP [{est['nombre']}]: {e}")
-        return False, "SIN CONEXIÓN", str(e)[:30], "--", "--", "--", "", "--", "--"
+        print(f"Error Estación Externa [{est['nombre']}]: {e}")
+        return False, "SIN CONEXIÓN", "Error de red", "--", "--", "--", "", "--", "--"
 
 def generar_html(resultados_totales, hay_alerta):
     total_estaciones = len(resultados_totales)
@@ -470,7 +396,7 @@ def generar_html(resultados_totales, hay_alerta):
         """
 
     alerta_class = "alerta-activa" if hay_alerta else ""
-    alerta_banner = '<div class="banner-alerta">⚠️ ¡ATENCIÓN: HAY ESTACIONES CON FALLAS O DESACTUALIZADAS! ⚠️</div>' if hay_alerta else ""
+    alerta_banner = '<div class="banner-alerta">⚠️ ¡ATENCIÓN: HAY ESTACIONES CON FALLAS O DESACTUALIZADAS! ⚠️️</div>' if hay_alerta else ""
     hora_actual_chile = obtener_hora_chile().strftime("%d-%m-%Y %H:%M:%S")
 
     html = f"""<!DOCTYPE html>
@@ -712,7 +638,7 @@ def generar_html(resultados_totales, hay_alerta):
     </div>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        var map = L.map('map').setView([-52.5, -71.5], 6);
+        var map = L.map('map').setView([-55.0, -70.0], 5);
         L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
             maxZoom: 12, attribution: '© OpenStreetMap contributors'
         }}).addTo(map);
@@ -793,20 +719,11 @@ def ejecutar_monitoreo():
             "viento": viento, "dir_viento": dir_viento, "racha": racha, "precipitacion": precipitacion
         }
 
-    for faro in ESTACIONES_FAROS:
-        ok, estado, temp, pres, viento, dir_viento, racha, precipitacion, ultimo = consultar_wunderground_web(faro)
+    for est in ESTACIONES_EXTERNAS:
+        ok, estado, ultimo, temp, pres, viento, dir_viento, racha, precipitacion = consultar_estacion_externa(est)
         if not ok: hubo_fallas = True
-        resultados_dict[faro["nombre"]] = {
-            "nombre": faro["nombre"], "url": faro["url"], "lat": faro["lat"], "lon": faro["lon"],
-            "ok": ok, "estado": estado, "ultimo": ultimo, "temp": temp, "pres": pres,
-            "viento": viento, "dir_viento": dir_viento, "racha": racha, "precipitacion": precipitacion
-        }
-
-    for est_ifop in ESTACIONES_IFOP:
-        ok, estado, ultimo, temp, pres, viento, dir_viento, racha, precipitacion = consultar_ifop(est_ifop)
-        if not ok: hubo_fallas = True
-        resultados_dict[est_ifop["nombre"]] = {
-            "nombre": est_ifop["nombre"], "url": est_ifop["url"], "lat": est_ifop["lat"], "lon": est_ifop["lon"],
+        resultados_dict[est["nombre"]] = {
+            "nombre": est["nombre"], "url": est["url"], "lat": est["lat"], "lon": est["lon"],
             "ok": ok, "estado": estado, "ultimo": ultimo, "temp": temp, "pres": pres,
             "viento": viento, "dir_viento": dir_viento, "racha": racha, "precipitacion": precipitacion
         }
