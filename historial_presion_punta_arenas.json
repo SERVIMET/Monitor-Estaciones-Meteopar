@@ -1,1 +1,30 @@
-{"Capitan\u00eda de Puerto Ed\u00e9n": [{"t": 1790693228.172243, "p": 989.07}], "Capitan\u00eda de Puerto Puerto Natales": [{"t": 1790693228.919383, "p": 1018.36}], "Alcald\u00eda de Mar Paso Timbales": [{"t": 1790693229.327116, "p": 1019.27}], "Alcald\u00eda de Mar Puerto Navarino": [{"t": 1790693229.888274, "p": 1020.49}], "Alcald\u00eda de Mar Puerto Corrientes": [{"t": 1790693230.359712, "p": 1021.37}]}
+{
+  "punta_arenas": {
+    "presion": 1012.4,
+    "timestamp": "29-09-2026 11:20:00"
+  },
+  "porvenir": {
+    "presion": null,
+    "timestamp": null
+  },
+  "puerto_eden": {
+    "presion": null,
+    "timestamp": null
+  },
+  "puerto_natales": {
+    "presion": null,
+    "timestamp": null
+  },
+  "paso_timbales": {
+    "presion": null,
+    "timestamp": null
+  },
+  "puerto_navarino": {
+    "presion": null,
+    "timestamp": null
+  },
+  "puerto_corrientes": {
+    "presion": null,
+    "timestamp": null
+  }
+}
