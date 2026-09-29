@@ -17,8 +17,10 @@ ARCHIVO_HISTORIAL = "historial_presion_punta_arenas.json"
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-    "Accept-Language": "es-ES,es;q=0.9",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+    "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+    "Cache-Control": "no-cache",
+    "Pragma": "no-cache"
 }
 
 ctx = ssl.create_default_context()
@@ -67,7 +69,7 @@ ESTACIONES_DIRECTEMAR = [
 ESTACIONES_EXTERNAS = [
     {
         "nombre": "Asmar Magallanes",
-        "url": "https://weatherlink.com/embeddablePage/show/aa24908f6c68472ba163e55765986705",
+        "url": "https://weatherlink.com/embeddablePage/show/aa24908f6c68472ba163e55765986705/realtime.txt",
         "lat": -53.150,
         "lon": -70.916,
         "tipo": "weatherlink"
@@ -311,8 +313,59 @@ def consultar_asmar_magallanes(est):
             return es_valido, estado_txt, ultimo_str, temp, pres, viento, dir_viento, racha, precipitacion
 
     except Exception as e:
-        print(f"Error en Asmar Magallanes: {e}")
-        return False, "SIN CONEXIÓN", "Error de red", "--", "--", "--", "", "--", "--"
+        print(f"Error en Asmar Magallanes (intento 1): {e}")
+        try:
+            url_alt = "https://weatherlink.com/embeddablePage/show/aa24908f6c68472ba163e55765986705"
+            req2 = urllib.request.Request(url_alt, headers=HEADERS)
+            with urllib.request.urlopen(req2, timeout=12, context=ctx) as response:
+                html = response.read().decode("utf-8", errors="ignore")
+                texto_plano = re.sub(r'<[^>]+>', ' ', html)
+                texto_plano = re.sub(r'\s+', ' ', texto_plano).strip()
+
+                temp, pres, viento, dir_viento, racha, precipitacion = "--", "--", "--", "", "--", "--"
+                pres_val = None
+
+                temp_match = re.search(r'([\-]?\d+(?:[.,]\d+)?)\s*°C', texto_plano)
+                if temp_match:
+                    val = convertir_numero(temp_match.group(1))
+                    if val is not None:
+                        temp = f"{val:.1f}°C"
+
+                pres_match = re.search(r'(?:Barometer|Barómetro)[^\d]*([\d]+[.,]\d+)\s*hPa', texto_plano, re.IGNORECASE)
+                if pres_match:
+                    pres_val = convertir_numero(pres_match.group(1))
+                    if pres_val is not None:
+                        tendencia = gestionar_historial_presion(est["nombre"], pres_val)
+                        pres = f"{pres_val:.1f} hPa{tendencia}"
+
+                viento_match = re.search(r'Wind[^\d]*([\d]+[.,]\d+)\s*(?:knots|kts|kt|nudos)?\s*([N,S,E,W]{1,3})?', texto_plano, re.IGNORECASE)
+                if viento_match:
+                    val = convertir_numero(viento_match.group(1))
+                    if val is not None:
+                        viento = f"{val:.1f} kt"
+                    if viento_match.group(2):
+                        dir_viento = formatear_direccion(viento_match.group(2))
+
+                racha_match = re.search(r'(?:gust|racha)[^\d]*([\d]+[.,]\d+)', texto_plano, re.IGNORECASE)
+                if racha_match:
+                    val = convertir_numero(racha_match.group(1))
+                    if val is not None:
+                        racha = f"{val:.1f} kt"
+
+                rain_match = re.search(r'Rain[^\d]*([\d]+[.,]\d+)\s*mm', texto_plano, re.IGNORECASE)
+                if rain_match:
+                    val = convertir_numero(rain_match.group(1))
+                    if val is not None:
+                        precipitacion = f"{val:.1f} mm"
+
+                es_valido = (pres_val is not None or temp != "--")
+                estado_txt = "OPERATIVA" if es_valido else "SIN DATOS VÁLIDOS"
+                ultimo_str = obtener_hora_chile().strftime("%d-%m-%Y %H:%M")
+
+                return es_valido, estado_txt, ultimo_str, temp, pres, viento, dir_viento, racha, precipitacion
+        except Exception as e2:
+            print(f"Error en Asmar Magallanes (intento 2): {e2}")
+            return False, "SIN CONEXIÓN", "Error de red", "--", "--", "--", "", "--", "--"
 
 def generar_html(resultados_totales, hay_alerta):
     total_estaciones = len(resultados_totales)
