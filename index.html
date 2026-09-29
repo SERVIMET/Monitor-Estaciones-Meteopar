@@ -225,17 +225,17 @@
     </div>
     <h1>Centro Zonal de Meteorología Marina</h1>
     <div class="subtitle-line2">Iquique</div>
-    <div class="subtitle">Última verificación: 29-09-2026 17:20:29 (Tolerancia: 12 min)</div>
+    <div class="subtitle">Última verificación: 29-09-2026 17:25:21 (Tolerancia: 12 min)</div>
     <div class="banner-alerta">⚠️ ¡ATENCIÓN: HAY ESTACIONES CON FALLAS O DESACTUALIZADAS! ⚠️</div>
-    <div class="summary">Estaciones Operativas: 4 de 8</div>
+    <div class="summary">Estaciones Operativas: 3 de 8</div>
     <div id="map"></div>
     <div class="grid">
         
         <a href="http://web.directemar.cl/met/jturno/estaciones/arica/index.htm" target="_blank" class="card-link">
-            <div class="card ok">
+            <div class="card error">
                 <div class="card-header">
                     <span class="station-name">Capitanía de Puerto Arica</span>
-                    <span class="status-badge">🟢</span>
+                    <span class="status-badge">🔴</span>
                 </div>
                 
             <div class="card-body-content">
@@ -329,7 +329,7 @@
             </div>
         
                 <div class="card-footer-info">
-                    <span class="time">Reporte: 29-09-2026 17:10:00</span>
+                    <span class="time">Reporte: 29-09-2026 17:20:01</span>
                     <span class="click-text">Ver ↗</span>
                 </div>
             </div>
@@ -451,12 +451,12 @@
         }).addTo(map);
         
         L.circleMarker([-18.474, -70.322], {
-            color: 'green', fillColor: 'green', fillOpacity: 0.8, radius: 9
-        }).addTo(map).bindPopup("<b>Capitanía de Puerto Arica</b><br>Estado: OPERATIVA<br>Temp: 21.4°C | Viento: 2.9 kt (W/SW) | Racha: 6.1 kt | Pres: 1014.3 hPa | Lluvia: 0.0 mm<br>Reporte: 29-09-2026 17:10:00<br><a href='http://web.directemar.cl/met/jturno/estaciones/arica/index.htm' target='_blank'>Abrir enlace ↗</a>");
+            color: 'red', fillColor: 'red', fillOpacity: 0.8, radius: 9
+        }).addTo(map).bindPopup("<b>Capitanía de Puerto Arica</b><br>Estado: DESACTUALIZADA (15 min)<br>Temp: 21.4°C | Viento: 2.9 kt (W/SW) | Racha: 6.1 kt | Pres: 1014.3 hPa | Lluvia: 0.0 mm<br>Reporte: 29-09-2026 17:10:00<br><a href='http://web.directemar.cl/met/jturno/estaciones/arica/index.htm' target='_blank'>Abrir enlace ↗</a>");
         
         L.circleMarker([-19.596, -70.216], {
             color: 'red', fillColor: 'red', fillOpacity: 0.8, radius: 9
-        }).addTo(map).bindPopup("<b>Alcaldía de Mar Pisagua</b><br>Estado: DESACTUALIZADA (9040 min)<br>Temp: 21.1°C | Viento: 0.0 kt (N) | Racha: 0.0 kt | Pres: 1017.2 hPa | Lluvia: 0.0 mm<br>Reporte: 23-09-2026 10:40:00<br><a href='http://web.directemar.cl/met/jturno/estaciones/pisagua/index.htm' target='_blank'>Abrir enlace ↗</a>");
+        }).addTo(map).bindPopup("<b>Alcaldía de Mar Pisagua</b><br>Estado: DESACTUALIZADA (9045 min)<br>Temp: 21.1°C | Viento: 0.0 kt (N) | Racha: 0.0 kt | Pres: 1017.2 hPa | Lluvia: 0.0 mm<br>Reporte: 23-09-2026 10:40:00<br><a href='http://web.directemar.cl/met/jturno/estaciones/pisagua/index.htm' target='_blank'>Abrir enlace ↗</a>");
         
         L.circleMarker([-20.213, -70.15], {
             color: 'green', fillColor: 'green', fillOpacity: 0.8, radius: 9
@@ -464,19 +464,19 @@
         
         L.circleMarker([-20.816, -70.15], {
             color: 'green', fillColor: 'green', fillOpacity: 0.8, radius: 9
-        }).addTo(map).bindPopup("<b>Capitanía de Puerto Patache</b><br>Estado: OPERATIVA<br>Temp: 22.3°C | Viento: 10.6 kt (S) | Racha: 14.8 kt | Pres: 1014.4 hPa | Lluvia: 0.0 mm<br>Reporte: 29-09-2026 17:10:00<br><a href='http://web.directemar.cl/met/jturno/estaciones/patache/index.htm' target='_blank'>Abrir enlace ↗</a>");
+        }).addTo(map).bindPopup("<b>Capitanía de Puerto Patache</b><br>Estado: OPERATIVA<br>Temp: 22.3°C | Viento: 10.6 kt (S) | Racha: 14.8 kt | Pres: 1014.4 hPa | Lluvia: 0.0 mm<br>Reporte: 29-09-2026 17:20:01<br><a href='http://web.directemar.cl/met/jturno/estaciones/patache/index.htm' target='_blank'>Abrir enlace ↗</a>");
         
         L.circleMarker([-22.092, -70.198], {
             color: 'red', fillColor: 'red', fillOpacity: 0.8, radius: 9
-        }).addTo(map).bindPopup("<b>Capitanía de Puerto Tocopilla</b><br>Estado: DESACTUALIZADA (99240 min)<br>Temp: 18.1°C | Viento: 5.5 kt (SW) | Racha: 9.6 kt | Pres: 1017.1 hPa | Lluvia: 0.0 mm<br>Reporte: 22-07-2026 19:20:00<br><a href='http://web.directemar.cl/met/jturno/estaciones/tocopilla/index.htm' target='_blank'>Abrir enlace ↗</a>");
+        }).addTo(map).bindPopup("<b>Capitanía de Puerto Tocopilla</b><br>Estado: DESACTUALIZADA (99245 min)<br>Temp: 18.1°C | Viento: 5.5 kt (SW) | Racha: 9.6 kt | Pres: 1017.1 hPa | Lluvia: 0.0 mm<br>Reporte: 22-07-2026 19:20:00<br><a href='http://web.directemar.cl/met/jturno/estaciones/tocopilla/index.htm' target='_blank'>Abrir enlace ↗</a>");
         
         L.circleMarker([-23.104, -70.446], {
             color: 'red', fillColor: 'red', fillOpacity: 0.8, radius: 9
-        }).addTo(map).bindPopup("<b>Capitanía de Puerto Mejillones</b><br>Estado: DESACTUALIZADA (335501 min)<br>Temp: 0.0°C | Viento: 0.0 kt (N) | Racha: 0.0 kt | Pres: 0.0 hPa | Lluvia: 0.0 mm<br>Reporte: 08-02-2026 17:38:48<br><a href='http://web.directemar.cl/met/jturno/estaciones/mejillones/index.htm' target='_blank'>Abrir enlace ↗</a>");
+        }).addTo(map).bindPopup("<b>Capitanía de Puerto Mejillones</b><br>Estado: DESACTUALIZADA (335506 min)<br>Temp: 0.0°C | Viento: 0.0 kt (N) | Racha: 0.0 kt | Pres: 0.0 hPa | Lluvia: 0.0 mm<br>Reporte: 08-02-2026 17:38:48<br><a href='http://web.directemar.cl/met/jturno/estaciones/mejillones/index.htm' target='_blank'>Abrir enlace ↗</a>");
         
         L.circleMarker([-23.652, -70.4], {
             color: 'red', fillColor: 'red', fillOpacity: 0.8, radius: 9
-        }).addTo(map).bindPopup("<b>Puerto de Antofagasta Terminal Internacional</b><br>Estado: DESACTUALIZADA (1597410 min)<br>Temp: 32.1°C | Viento: 0.0 kt (N) | Racha: 0.0 kt | Pres: 1015.7 hPa | Lluvia: 0.0 mm<br>Reporte: 16-09-2023 09:50:00<br><a href='http://web.directemar.cl/met/jturno/estaciones/antofagasta/index.htm' target='_blank'>Abrir enlace ↗</a>");
+        }).addTo(map).bindPopup("<b>Puerto de Antofagasta Terminal Internacional</b><br>Estado: DESACTUALIZADA (1597415 min)<br>Temp: 32.1°C | Viento: 0.0 kt (N) | Racha: 0.0 kt | Pres: 1015.7 hPa | Lluvia: 0.0 mm<br>Reporte: 16-09-2023 09:50:00<br><a href='http://web.directemar.cl/met/jturno/estaciones/antofagasta/index.htm' target='_blank'>Abrir enlace ↗</a>");
         
         L.circleMarker([-25.404, -70.485], {
             color: 'green', fillColor: 'green', fillOpacity: 0.8, radius: 9
