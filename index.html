@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="refresh" content="30">
-    <title>Monitor de Estaciones Automáticas - Magallanes</title>
+    <title>Monitor de Estaciones Automáticas - Punta Arenas</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root {
@@ -72,7 +72,7 @@
         }
 
         .banner-alerta { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; text-align: center; font-weight: bold; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); }
-        #map { height: 380px; width: 100%; max-width: 1200px; margin: 0 auto 20px auto; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border: 1px solid var(--summary-border); }
+        #map { height: 350px; width: 100%; max-width: 1200px; margin: 0 auto 20px auto; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border: 1px solid var(--summary-border); }
         
         .grid { 
             display: grid; 
@@ -224,213 +224,179 @@
         <button class="icon-btn wind-unit-btn" onclick="toggleWindUnit()" id="windUnitBtn" title="Cambiar Unidad de Viento">kt</button>
     </div>
     <h1>Monitor de Estaciones Automáticas</h1>
-    <div class="subtitle-line2">Centro Zonal de Meteorología Marina de Magallanes y Antártica Chilena</div>
-    <div class="subtitle">Última verificación: 29-09-2026 11:30:00 (Tolerancia: 12 min)</div>
-    <div class="banner-alerta">⚠️ ¡ATENCIÓN: HAY ESTACIONES CON FALLAS O DESACTUALIZADAS! ⚠️️</div>
-    <div class="summary">Estaciones Operativas: 1 de 7</div>
+    <div class="subtitle-line2">Centro Zonal de Meteorología Marina de Punta Arenas</div>
+    <div class="subtitle">Última verificación: 29-09-2026 11:47:10 (Tolerancia: 12 min)</div>
+    <div class="banner-alerta">⚠️ ¡ATENCIÓN: HAY ESTACIONES CON FALLAS O DESACTUALIZADAS! ⚠️</div>
+    <div class="summary">Estaciones Operativas: 4 de 5</div>
     <div id="map"></div>
     <div class="grid">
         
-        <!-- Punta Arenas -->
-        <a href="http://web.directemar.cl/met/jturno/estaciones/punta_arenas/index.htm" target="_blank" class="card-link">
+        <a href="http://web.directemar.cl/met/jturno/estaciones/eden/index.htm" target="_blank" class="card-link">
+            <div class="card error">
+                <div class="card-header">
+                    <span class="station-name">Capitanía de Puerto Edén</span>
+                    <span class="status-badge">🔴</span>
+                </div>
+                
+            <div class="card-body-content">
+                <div class="row-top">
+                    <div class="item-box temp-box">🌡️ 8.3°C</div>
+                    <div class="item-box"><span style="display: block; font-size: 0.58em; color: var(--wind-color, #1d4ed8); font-weight: 800; line-height: 1.1;">🌬️ NW</span><span style="display: block; font-size: 0.72em; font-weight: 700; line-height: 1.1;">5.2 kt</span></div>
+                    <div class="item-box"><span style="font-size: 0.58em; color: var(--wind-color, #1d4ed8); font-weight: 800; display: block; line-height: 1.1;">💨 RACHA</span><span style="font-size: 0.72em; font-weight: 700; line-height: 1.1;">9.6 kt</span></div>
+                </div>
+                <div class="row-bottom">
+                    <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">⏲️ 989.1 hPa</span></div>
+                    <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">🌧️ 7.2 mm</span></div>
+                </div>
+            </div>
+        
+                <div class="card-footer-info">
+                    <span class="time">Reporte: 16-03-2026 19:00:00</span>
+                    <span class="click-text">Ver ↗</span>
+                </div>
+            </div>
+        </a>
+        
+        <a href="http://web.directemar.cl/met/jturno/estaciones/natales/index.htm" target="_blank" class="card-link">
             <div class="card ok">
                 <div class="card-header">
-                    <span class="station-name">Gobernación Marítima de Punta Arenas</span>
+                    <span class="station-name">Capitanía de Puerto Puerto Natales</span>
                     <span class="status-badge">🟢</span>
                 </div>
-                <div class="card-body-content">
-                    <div class="row-top">
-                        <div class="item-box temp-box">🌡️ 6.5°C</div>
-                        <div class="item-box"><span style="display: block; font-size: 0.58em; color: var(--wind-color, #1d4ed8); font-weight: 800; line-height: 1.1;">🌬️ W/NW</span><span style="display: block; font-size: 0.72em; font-weight: 700; line-height: 1.1;">8.0 kt</span></div>
-                        <div class="item-box"><span style="font-size: 0.58em; color: var(--wind-color, #1d4ed8); font-weight: 800; display: block; line-height: 1.1;">💨 RACHA</span><span style="font-size: 0.72em; font-weight: 700; line-height: 1.1;">15.0 kt</span></div>
-                    </div>
-                    <div class="row-bottom">
-                        <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">⏲️ 1012.4 hPa ↗</span></div>
-                        <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">🌧️ 0.0 mm</span></div>
-                    </div>
+                
+            <div class="card-body-content">
+                <div class="row-top">
+                    <div class="item-box temp-box">🌡️ 6.7°C</div>
+                    <div class="item-box"><span style="display: block; font-size: 0.58em; color: var(--wind-color, #1d4ed8); font-weight: 800; line-height: 1.1;">🌬️ S/SE</span><span style="display: block; font-size: 0.72em; font-weight: 700; line-height: 1.1;">1.2 kt</span></div>
+                    <div class="item-box"><span style="font-size: 0.58em; color: var(--wind-color, #1d4ed8); font-weight: 800; display: block; line-height: 1.1;">💨 RACHA</span><span style="font-size: 0.72em; font-weight: 700; line-height: 1.1;">3.5 kt</span></div>
                 </div>
+                <div class="row-bottom">
+                    <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">⏲️ 1018.4 hPa</span></div>
+                    <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">🌧️ 0.0 mm</span></div>
+                </div>
+            </div>
+        
                 <div class="card-footer-info">
-                    <span class="time">Reporte: 29-09-2026 11:20:00</span>
+                    <span class="time">Reporte: 29-09-2026 11:40:00</span>
                     <span class="click-text">Ver ↗</span>
                 </div>
             </div>
         </a>
-
-        <!-- Porvenir -->
-        <a href="http://web.directemar.cl/met/jturno/estaciones/porvenir/index.htm" target="_blank" class="card-link">
-            <div class="card error">
+        
+        <a href="http://web.directemar.cl/met/jturno/estaciones/timbales/index.htm" target="_blank" class="card-link">
+            <div class="card ok">
                 <div class="card-header">
-                    <span class="station-name">Capitanía de Puerto Porvenir</span>
-                    <span class="status-badge">🔴</span>
+                    <span class="station-name">Alcaldía de Mar Paso Timbales</span>
+                    <span class="status-badge">🟢</span>
                 </div>
-                <div class="card-body-content">
-                    <div class="row-top">
-                        <div class="item-box temp-box">🌡 --</div>
-                        <div class="item-box"><span style="display: block; font-size: 0.58em; color: transparent; font-weight: 800; line-height: 1.1; user-select: none;">-</span><span style="display: block; font-size: 0.72em; font-weight: 700; line-height: 1.1;">--</span></div>
-                        <div class="item-box"><span style="font-size: 0.58em; color: var(--wind-color, #1d4ed8); font-weight: 800; display: block; line-height: 1.1;">💨 RACHA</span><span style="font-size: 0.72em; font-weight: 700; line-height: 1.1;">--</span></div>
-                    </div>
-                    <div class="row-bottom">
-                        <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">⏲️ --</span></div>
-                        <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">🌧️ --</span></div>
-                    </div>
+                
+            <div class="card-body-content">
+                <div class="row-top">
+                    <div class="item-box temp-box">🌡️ 7.3°C</div>
+                    <div class="item-box"><span style="display: block; font-size: 0.58em; color: var(--wind-color, #1d4ed8); font-weight: 800; line-height: 1.1;">🌬️ E/SE</span><span style="display: block; font-size: 0.72em; font-weight: 700; line-height: 1.1;">1.0 kt</span></div>
+                    <div class="item-box"><span style="font-size: 0.58em; color: var(--wind-color, #1d4ed8); font-weight: 800; display: block; line-height: 1.1;">💨 RACHA</span><span style="font-size: 0.72em; font-weight: 700; line-height: 1.1;">2.6 kt</span></div>
                 </div>
+                <div class="row-bottom">
+                    <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">⏲️ 1019.3 hPa</span></div>
+                    <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">🌧️ 0.0 mm</span></div>
+                </div>
+            </div>
+        
                 <div class="card-footer-info">
-                    <span class="time">Reporte: Error de red</span>
+                    <span class="time">Reporte: 29-09-2026 11:40:00</span>
                     <span class="click-text">Ver ↗</span>
                 </div>
             </div>
         </a>
-
-        <!-- Puerto Edén -->
-        <a href="http://web.directemar.cl/met/jturno/estaciones/puerto_eden/index.htm" target="_blank" class="card-link">
-            <div class="card error">
+        
+        <a href="http://web.directemar.cl/met/jturno/estaciones/navarino/index.htm" target="_blank" class="card-link">
+            <div class="card ok">
                 <div class="card-header">
-                    <span class="station-name">Puerto Edén</span>
-                    <span class="status-badge">🔴</span>
+                    <span class="station-name">Alcaldía de Mar Puerto Navarino</span>
+                    <span class="status-badge">🟢</span>
                 </div>
-                <div class="card-body-content">
-                    <div class="row-top">
-                        <div class="item-box temp-box">🌡 --</div>
-                        <div class="item-box"><span style="display: block; font-size: 0.58em; color: transparent; font-weight: 800; line-height: 1.1; user-select: none;">-</span><span style="display: block; font-size: 0.72em; font-weight: 700; line-height: 1.1;">--</span></div>
-                        <div class="item-box"><span style="font-size: 0.58em; color: var(--wind-color, #1d4ed8); font-weight: 800; display: block; line-height: 1.1;">💨 RACHA</span><span style="font-size: 0.72em; font-weight: 700; line-height: 1.1;">--</span></div>
-                    </div>
-                    <div class="row-bottom">
-                        <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">⏲️ --</span></div>
-                        <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">🌧️ --</span></div>
-                    </div>
+                
+            <div class="card-body-content">
+                <div class="row-top">
+                    <div class="item-box temp-box">🌡️ 8.9°C</div>
+                    <div class="item-box"><span style="display: block; font-size: 0.58em; color: var(--wind-color, #1d4ed8); font-weight: 800; line-height: 1.1;">🌬️ N/NE</span><span style="display: block; font-size: 0.72em; font-weight: 700; line-height: 1.1;">5.2 kt</span></div>
+                    <div class="item-box"><span style="font-size: 0.58em; color: var(--wind-color, #1d4ed8); font-weight: 800; display: block; line-height: 1.1;">💨 RACHA</span><span style="font-size: 0.72em; font-weight: 700; line-height: 1.1;">7.0 kt</span></div>
                 </div>
+                <div class="row-bottom">
+                    <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">⏲️ 1020.5 hPa</span></div>
+                    <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">🌧️ 0.0 mm</span></div>
+                </div>
+            </div>
+        
                 <div class="card-footer-info">
-                    <span class="time">Reporte: Sin datos</span>
+                    <span class="time">Reporte: 29-09-2026 11:40:00</span>
                     <span class="click-text">Ver ↗</span>
                 </div>
             </div>
         </a>
-
-        <!-- Puerto Natales -->
-        <a href="http://web.directemar.cl/met/jturno/estaciones/puerto_natales/index.htm" target="_blank" class="card-link">
-            <div class="card error">
+        
+        <a href="http://web.directemar.cl/met/jturno/estaciones/corrientes/index.htm" target="_blank" class="card-link">
+            <div class="card ok">
                 <div class="card-header">
-                    <span class="station-name">Capitanía de Puerto Puerto Natales</span>
-                    <span class="status-badge">🔴</span>
+                    <span class="station-name">Alcaldía de Mar Puerto Corrientes</span>
+                    <span class="status-badge">🟢</span>
                 </div>
-                <div class="card-body-content">
-                    <div class="row-top">
-                        <div class="item-box temp-box">🌡 --</div>
-                        <div class="item-box"><span style="display: block; font-size: 0.58em; color: transparent; font-weight: 800; line-height: 1.1; user-select: none;">-</span><span style="display: block; font-size: 0.72em; font-weight: 700; line-height: 1.1;">--</span></div>
-                        <div class="item-box"><span style="font-size: 0.58em; color: var(--wind-color, #1d4ed8); font-weight: 800; display: block; line-height: 1.1;">💨 RACHA</span><span style="font-size: 0.72em; font-weight: 700; line-height: 1.1;">--</span></div>
-                    </div>
-                    <div class="row-bottom">
-                        <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">⏲️ --</span></div>
-                        <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">🌧️ --</span></div>
-                    </div>
+                
+            <div class="card-body-content">
+                <div class="row-top">
+                    <div class="item-box temp-box">🌡️ 3.7°C</div>
+                    <div class="item-box"><span style="display: block; font-size: 0.58em; color: var(--wind-color, #1d4ed8); font-weight: 800; line-height: 1.1;">🌬️ E/NE</span><span style="display: block; font-size: 0.72em; font-weight: 700; line-height: 1.1;">4.1 kt</span></div>
+                    <div class="item-box"><span style="font-size: 0.58em; color: var(--wind-color, #1d4ed8); font-weight: 800; display: block; line-height: 1.1;">💨 RACHA</span><span style="font-size: 0.72em; font-weight: 700; line-height: 1.1;">7.0 kt</span></div>
                 </div>
+                <div class="row-bottom">
+                    <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">⏲️ 1021.4 hPa</span></div>
+                    <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">🌧️ 0.0 mm</span></div>
+                </div>
+            </div>
+        
                 <div class="card-footer-info">
-                    <span class="time">Reporte: Sin datos</span>
+                    <span class="time">Reporte: 29-09-2026 11:40:00</span>
                     <span class="click-text">Ver ↗</span>
                 </div>
             </div>
         </a>
-
-        <!-- Paso Timbales -->
-        <a href="http://web.directemar.cl/met/jturno/estaciones/paso_timbales/index.htm" target="_blank" class="card-link">
-            <div class="card error">
-                <div class="card-header">
-                    <span class="station-name">Paso Timbales</span>
-                    <span class="status-badge">🔴</span>
-                </div>
-                <div class="card-body-content">
-                    <div class="row-top">
-                        <div class="item-box temp-box">🌡 --</div>
-                        <div class="item-box"><span style="display: block; font-size: 0.58em; color: transparent; font-weight: 800; line-height: 1.1; user-select: none;">-</span><span style="display: block; font-size: 0.72em; font-weight: 700; line-height: 1.1;">--</span></div>
-                        <div class="item-box"><span style="font-size: 0.58em; color: var(--wind-color, #1d4ed8); font-weight: 800; display: block; line-height: 1.1;">💨 RACHA</span><span style="font-size: 0.72em; font-weight: 700; line-height: 1.1;">--</span></div>
-                    </div>
-                    <div class="row-bottom">
-                        <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">⏲️ --</span></div>
-                        <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">🌧️ --</span></div>
-                    </div>
-                </div>
-                <div class="card-footer-info">
-                    <span class="time">Reporte: Sin datos</span>
-                    <span class="click-text">Ver ↗</span>
-                </div>
-            </div>
-        </a>
-
-        <!-- Puerto Navarino -->
-        <a href="http://web.directemar.cl/met/jturno/estaciones/puerto_navarino/index.htm" target="_blank" class="card-link">
-            <div class="card error">
-                <div class="card-header">
-                    <span class="station-name">Puerto Navarino</span>
-                    <span class="status-badge">🔴</span>
-                </div>
-                <div class="card-body-content">
-                    <div class="row-top">
-                        <div class="item-box temp-box">🌡 --</div>
-                        <div class="item-box"><span style="display: block; font-size: 0.58em; color: transparent; font-weight: 800; line-height: 1.1; user-select: none;">-</span><span style="display: block; font-size: 0.72em; font-weight: 700; line-height: 1.1;">--</span></div>
-                        <div class="item-box"><span style="font-size: 0.58em; color: var(--wind-color, #1d4ed8); font-weight: 800; display: block; line-height: 1.1;">💨 RACHA</span><span style="font-size: 0.72em; font-weight: 700; line-height: 1.1;">--</span></div>
-                    </div>
-                    <div class="row-bottom">
-                        <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">⏲️ --</span></div>
-                        <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">🌧️ --</span></div>
-                    </div>
-                </div>
-                <div class="card-footer-info">
-                    <span class="time">Reporte: Sin datos</span>
-                    <span class="click-text">Ver ↗</span>
-                </div>
-            </div>
-        </a>
-
-        <!-- Puerto Corrientes -->
-        <a href="http://web.directemar.cl/met/jturno/estaciones/puerto_corrientes/index.htm" target="_blank" class="card-link">
-            <div class="card error">
-                <div class="card-header">
-                    <span class="station-name">Puerto Corrientes</span>
-                    <span class="status-badge">🔴</span>
-                </div>
-                <div class="card-body-content">
-                    <div class="row-top">
-                        <div class="item-box temp-box">🌡 --</div>
-                        <div class="item-box"><span style="display: block; font-size: 0.58em; color: transparent; font-weight: 800; line-height: 1.1; user-select: none;">-</span><span style="display: block; font-size: 0.72em; font-weight: 700; line-height: 1.1;">--</span></div>
-                        <div class="item-box"><span style="font-size: 0.58em; color: var(--wind-color, #1d4ed8); font-weight: 800; display: block; line-height: 1.1;">💨 RACHA</span><span style="font-size: 0.72em; font-weight: 700; line-height: 1.1;">--</span></div>
-                    </div>
-                    <div class="row-bottom">
-                        <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">⏲️ --</span></div>
-                        <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">🌧️ --</span></div>
-                    </div>
-                </div>
-                <div class="card-footer-info">
-                    <span class="time">Reporte: Sin datos</span>
-                    <span class="click-text">Ver ↗</span>
-                </div>
-            </div>
-        </a>
-
+        
     </div>
     <div style="text-align: center;">
         <div class="footer-dev">Desarrollado por Sgto 2° (Met.) Luis Diego Achurra Garcés</div>
     </div>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Mapa centrado en la región de Magallanes
-        var map = L.map('map').setView([-53.16, -70.91], 5);
+        var map = L.map('map').setView([-52.5, -71.5], 6);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 12, attribution: '© OpenStreetMap contributors'
         }).addTo(map);
         
-        // Marcadores en el mapa (ajusta las coordenadas según corresponda)
-        L.circleMarker([-53.163, -70.917], { color: 'green', fillColor: 'green', fillOpacity: 0.8, radius: 8 }).addTo(map).bindPopup("<b>Gobernación Marítima de Punta Arenas</b><br>OPERATIVA<br><a href='http://web.directemar.cl/met/jturno/estaciones/punta_arenas/index.htm' target='_blank'>Abrir enlace ↗</a>");
-        L.circleMarker([-53.295, -70.366], { color: 'red', fillColor: 'red', fillOpacity: 0.8, radius: 8 }).addTo(map).bindPopup("<b>Capitanía de Puerto Porvenir</b><br>SIN CONEXIÓN<br><a href='http://web.directemar.cl/met/jturno/estaciones/porvenir/index.htm' target='_blank'>Abrir enlace ↗</a>");
-        L.circleMarker([-48.913, -74.409], { color: 'red', fillColor: 'red', fillOpacity: 0.8, radius: 8 }).addTo(map).bindPopup("<b>Puerto Edén</b><br>SIN CONEXIÓN<br><a href='http://web.directemar.cl/met/jturno/estaciones/puerto_eden/index.htm' target='_blank'>Abrir enlace ↗</a>");
-        L.circleMarker([-51.728, -72.508], { color: 'red', fillColor: 'red', fillOpacity: 0.8, radius: 8 }).addTo(map).bindPopup("<b>Capitanía de Puerto Puerto Natales</b><br>SIN CONEXIÓN<br><a href='http://web.directemar.cl/met/jturno/estaciones/puerto_natales/index.htm' target='_blank'>Abrir enlace ↗</a>");
-        L.circleMarker([-52.500, -70.000], { color: 'red', fillColor: 'red', fillOpacity: 0.8, radius: 8 }).addTo(map).bindPopup("<b>Paso Timbales</b><br>SIN CONEXIÓN<br><a href='http://web.directemar.cl/met/jturno/estaciones/paso_timbales/index.htm' target='_blank'>Abrir enlace ↗</a>");
-        L.circleMarker([-54.916, -68.316], { color: 'red', fillColor: 'red', fillOpacity: 0.8, radius: 8 }).addTo(map).bindPopup("<b>Puerto Navarino</b><br>SIN CONEXIÓN<br><a href='http://web.directemar.cl/met/jturno/estaciones/puerto_navarino/index.htm' target='_blank'>Abrir enlace ↗</a>");
-        L.circleMarker([-53.000, -71.000], { color: 'red', fillColor: 'red', fillOpacity: 0.8, radius: 8 }).addTo(map).bindPopup("<b>Puerto Corrientes</b><br>SIN CONEXIÓN<br><a href='http://web.directemar.cl/met/jturno/estaciones/puerto_corrientes/index.htm' target='_blank'>Abrir enlace ↗</a>");
+        L.circleMarker([-49.133, -74.433], {
+            color: 'red', fillColor: 'red', fillOpacity: 0.8, radius: 9
+        }).addTo(map).bindPopup("<b>Capitanía de Puerto Edén</b><br>Estado: DESACTUALIZADA (283247 min)<br>Temp: 8.3°C | Viento: 5.2 kt (NW) | Racha: 9.6 kt | Pres: 989.1 hPa | Lluvia: 7.2 mm<br>Reporte: 16-03-2026 19:00:00<br><a href='http://web.directemar.cl/met/jturno/estaciones/eden/index.htm' target='_blank'>Abrir enlace ↗</a>");
+        
+        L.circleMarker([-51.733, -72.5], {
+            color: 'green', fillColor: 'green', fillOpacity: 0.8, radius: 9
+        }).addTo(map).bindPopup("<b>Capitanía de Puerto Puerto Natales</b><br>Estado: OPERATIVA<br>Temp: 6.7°C | Viento: 1.2 kt (S/SE) | Racha: 3.5 kt | Pres: 1018.4 hPa | Lluvia: 0.0 mm<br>Reporte: 29-09-2026 11:40:00<br><a href='http://web.directemar.cl/met/jturno/estaciones/natales/index.htm' target='_blank'>Abrir enlace ↗</a>");
+        
+        L.circleMarker([-52.283, -70.083], {
+            color: 'green', fillColor: 'green', fillOpacity: 0.8, radius: 9
+        }).addTo(map).bindPopup("<b>Alcaldía de Mar Paso Timbales</b><br>Estado: OPERATIVA<br>Temp: 7.3°C | Viento: 1.0 kt (E/SE) | Racha: 2.6 kt | Pres: 1019.3 hPa | Lluvia: 0.0 mm<br>Reporte: 29-09-2026 11:40:00<br><a href='http://web.directemar.cl/met/jturno/estaciones/timbales/index.htm' target='_blank'>Abrir enlace ↗</a>");
+        
+        L.circleMarker([-54.95, -68.316], {
+            color: 'green', fillColor: 'green', fillOpacity: 0.8, radius: 9
+        }).addTo(map).bindPopup("<b>Alcaldía de Mar Puerto Navarino</b><br>Estado: OPERATIVA<br>Temp: 8.9°C | Viento: 5.2 kt (N/NE) | Racha: 7.0 kt | Pres: 1020.5 hPa | Lluvia: 0.0 mm<br>Reporte: 29-09-2026 11:40:00<br><a href='http://web.directemar.cl/met/jturno/estaciones/navarino/index.htm' target='_blank'>Abrir enlace ↗</a>");
+        
+        L.circleMarker([-53.983, -70.216], {
+            color: 'green', fillColor: 'green', fillOpacity: 0.8, radius: 9
+        }).addTo(map).bindPopup("<b>Alcaldía de Mar Puerto Corrientes</b><br>Estado: OPERATIVA<br>Temp: 3.7°C | Viento: 4.1 kt (E/NE) | Racha: 7.0 kt | Pres: 1021.4 hPa | Lluvia: 0.0 mm<br>Reporte: 29-09-2026 11:40:00<br><a href='http://web.directemar.cl/met/jturno/estaciones/corrientes/index.htm' target='_blank'>Abrir enlace ↗</a>");
+        
 
         function toggleDarkMode() {
             document.body.classList.toggle('dark-mode');
             const isDark = document.body.classList.contains('dark-mode');
-            localStorage.setItem('darkMode', isDark ? 'enabled' : 'disabled');
+            localStorage.setItem('darkModePtaArenas', isDark ? 'enabled' : 'disabled');
             updateButtonText(isDark);
         }
 
@@ -439,7 +405,7 @@
             if (btn) btn.innerHTML = isDark ? '☀️' : '🌙';
         }
 
-        if (localStorage.getItem('darkMode') === 'enabled') {
+        if (localStorage.getItem('darkModePtaArenas') === 'enabled') {
             document.body.classList.add('dark-mode');
             updateButtonText(true);
         }
@@ -448,7 +414,7 @@
 
         function toggleWindUnit() {
             windInKnots = !windInKnots;
-            localStorage.setItem('windUnit', windInKnots ? 'kt' : 'khr');
+            localStorage.setItem('windUnitPtaArenas', windInKnots ? 'kt' : 'khr');
             updateWindDisplay();
         }
 
@@ -476,7 +442,7 @@
             });
         }
 
-        if (localStorage.getItem('windUnit') === 'khr') {
+        if (localStorage.getItem('windUnitPtaArenas') === 'khr') {
             windInKnots = false;
             setTimeout(updateWindDisplay, 100);
         }
