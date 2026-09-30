@@ -178,10 +178,15 @@ def consultar_directemar(est):
             page = browser.new_page(user_agent=HEADERS["User-Agent"])
             page.goto(est["url"], timeout=30000, wait_until="domcontentloaded")
             
-            # Esperar un momento a que cargue el contenido dinámico si lo hubiera
-            page.wait_for_timeout(2000)
+            page.wait_for_timeout(3000)
             html = page.content()
             browser.close()
+
+            # LÍNEA DE DEPURACIÓN PARA EDÉN
+            if "eden" in est["url"]:
+                print(f"--- HTML EXTRAÍDO DE EDÉN ---")
+                print(html[:1000])
+                print(f"-----------------------------")
 
             texto_plano = re.sub(r'<[^>]+>', ' ', html)
             texto_plano = texto_plano.replace('\xa5', ' ').replace('\xa0', ' ').replace('&nbsp;', ' ').replace('&deg;', '°').replace('&#176;', '°')
@@ -209,7 +214,7 @@ def consultar_directemar(est):
             if not bearing_match:
                 bearing_match = re.search(r'(?:Direcci[oó]n|Dir)[^\w]*(?:del\s*)?(?:Viento)?[^\w]*([N,S,E,W]{1,3})', texto_plano, re.IGNORECASE)
             if not bearing_match:
-                deg_match = re.search(r'(?:Direcci[oó]n|Dir|Wind\s*Direction|Bearing)[^\d]*(\d+(?:[.,]\d+)?)\s*°', texto_plano, re.IGNORECASE)
+                deg_match = re.search(r'(?:Direcci[oó]n|Dir|Wind\s*Bearing|Wind\s*Direction)[^\d]*(\d+(?:[.,]\d+)?)\s*°', texto_plano, re.IGNORECASE)
                 if deg_match:
                     grados_val = convertir_numero(deg_match.group(1))
                     if grados_val is not None:
@@ -245,6 +250,8 @@ def consultar_directemar(est):
 
             match_fecha = re.search(r'(?:Page\s+updated|Actualizado)\s+(\d{1,2}-\d{1,2}-\d{4}\s+\d{1,2}:\d{2}(?::\d{2})?)', texto_plano, re.IGNORECASE)
             if not match_fecha:
+                if "eden" in est["url"]:
+                    print(f"Edén: No se encontró patrón de fecha. Texto plano: {texto_plano[:400]}")
                 return False, "SIN DATOS VÁLIDOS", "N/D", temp, pres, viento, dir_viento, racha, precipitacion
 
             fecha_str = match_fecha.group(1)
