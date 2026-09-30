@@ -34,7 +34,7 @@ ctx.verify_mode = ssl.CERT_NONE
 ESTACIONES_DIRECTEMAR = [
     {
         "nombre": "Capitanía de Puerto Edén",
-        "url": "http://serviciosonline.directemar.cl/meteomapa/fichaestacion/EDEN",
+        "url": "http://serviciosonline.directemar.cl/meteomapa/fichaEstacion/EDEN",
         "lat": -49.133,
         "lon": -74.433,
         "tipo": "ficha_directemar"
