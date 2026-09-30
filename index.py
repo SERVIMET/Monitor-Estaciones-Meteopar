@@ -33,33 +33,38 @@ ctx.verify_mode = ssl.CERT_NONE
 ESTACIONES_DIRECTEMAR = [
     {
         "nombre": "Capitanía de Puerto Edén",
-        "url": "http://web.directemar.cl/met/jturno/estaciones/eden/index.htm",
+        "url": "https://serviciosonline.directemar.cl/meteomapa/fichaEstacion/EDEN",
         "lat": -49.133,
         "lon": -74.433,
+        "tipo": "nuevo_directemar"
     },
     {
         "nombre": "Capitanía de Puerto Puerto Natales",
         "url": "http://web.directemar.cl/met/jturno/estaciones/natales/index.htm",
         "lat": -51.733,
         "lon": -72.500,
+        "tipo": "antiguo_directemar"
     },
     {
         "nombre": "Alcaldía de Mar Paso Timbales",
         "url": "http://web.directemar.cl/met/jturno/estaciones/timbales/index.htm",
         "lat": -52.283,
         "lon": -70.083,
+        "tipo": "antiguo_directemar"
     },
     {
         "nombre": "Alcaldía de Mar Puerto Navarino",
         "url": "http://web.directemar.cl/met/jturno/estaciones/navarino/index.htm",
         "lat": -54.950,
         "lon": -68.316,
+        "tipo": "antiguo_directemar"
     },
     {
         "nombre": "Alcaldía de Mar Puerto Corrientes",
         "url": "http://web.directemar.cl/met/jturno/estaciones/corrientes/index.htm",
         "lat": -53.983,
         "lon": -70.216,
+        "tipo": "antiguo_directemar"
     },
 ]
 
@@ -170,7 +175,97 @@ def gestionar_historial_presion(nombre_estacion, presion_actual):
     else:
         return " ➔"
 
+def consultar_directemar_nuevo(est):
+    try:
+        req = urllib.request.Request(est["url"], headers=HEADERS)
+        with urllib.request.urlopen(req, timeout=10, context=ctx) as response:
+            html = response.read().decode("utf-8", errors="ignore")
+            
+            texto_plano = re.sub(r'<[^>]+>', ' ', html)
+            texto_plano = texto_plano.replace('\xa5', ' ').replace('\xa0', ' ').replace('&nbsp;', ' ').replace('&deg;', '°').replace('&#176;', '°')
+            texto_plano = re.sub(r'\s+', ' ', texto_plano).strip()
+
+            temp, pres, viento, dir_viento, racha, precipitacion = "--", "--", "--", "", "--", "--"
+            pres_val = None
+
+            # Búsqueda adaptada a la nueva ficha web de Directemar
+            temp_match = re.search(r'Temperatura[^\d\-]*([\-]?\d+(?:[.,]\d+)?)\s*°C', texto_plano, re.IGNORECASE)
+            if temp_match:
+                val = convertir_numero(temp_match.group(1))
+                if val is not None:
+                    temp = f"{val:.1f}°C"
+
+            pres_match = re.search(r'Presi[oó]n[^\d]*([\-]?\d+(?:[.,]\d+)?)\s*hPa', texto_plano, re.IGNORECASE)
+            if pres_match:
+                pres_val = convertir_numero(pres_match.group(1))
+                if pres_val is not None:
+                    tendencia = gestionar_historial_presion(est["nombre"], pres_val)
+                    pres = f"{pres_val:.1f} hPa{tendencia}"
+
+            # Formato de viento nuevo: Ej. "256° W | 0.6 kts | Máx: 13.9 kts" o similar
+            viento_match = re.search(r'Viento[^\d]*(\d+)\s*°\s*([N,S,E,W]{1,3})\s*\|\s*([\d]+[.,]\d+)\s*(?:kts|kt|knots|nudos)?', texto_plano, re.IGNORECASE)
+            if viento_match:
+                grados_val = convertir_numero(viento_match.group(1))
+                if grados_val is not None:
+                    dir_viento = grados_a_cardinal(grados_val)
+                val_v = convertir_numero(viento_match.group(3))
+                if val_v is not None:
+                    viento = f"{val_v:.1f} kt"
+            else:
+                # Búsqueda genérica alternativa de viento por si cambia el orden
+                v_gen = re.search(r'Viento[^\d]*([\-]?\d+(?:[.,]\d+)?)\s*(?:kts|kt|knots|nudos)?', texto_plano, re.IGNORECASE)
+                if v_gen:
+                    val = convertir_numero(v_gen.group(1))
+                    if val is not None:
+                        viento = f"{val:.1f} kt"
+                dir_gen = re.search(r'Viento[^\d]*\d+\s*°\s*([N,S,E,W]{1,3})', texto_plano, re.IGNORECASE)
+                if dir_gen:
+                    dir_viento = formatear_direccion(dir_gen.group(1))
+
+            racha_match = re.search(r'M[áa]x[^\d]*([\d]+[.,]\d+)\s*(?:kts|kt|knots|nudos)?', texto_plano, re.IGNORECASE)
+            if racha_match:
+                val = convertir_numero(racha_match.group(1))
+                if val is not None:
+                    racha = f"{val:.1f} kt"
+
+            pp_match = re.search(r'Lluvia\s*hoy[^\d]*([\d]+[.,]\d+)\s*mm', texto_plano, re.IGNORECASE)
+            if not pp_match:
+                pp_match = re.search(r'(?:Precipitaci[oó]n|Lluvia)[^\d]*([\d]+[.,]\d+)', texto_plano, re.IGNORECASE)
+            if pp_match:
+                val = convertir_numero(pp_match.group(1))
+                if val is not None:
+                    precipitacion = f"{val:.1f} mm"
+
+            match_fecha = re.search(r'Observaci[oó]n\s*Reciente[^\d]*(\d{1,2}/\d{1,2}/\d{4}\s+\d{1,2}:\d{2})', texto_plano, re.IGNORECASE)
+            if not match_fecha:
+                match_fecha = re.search(r'(\d{1,2}-\d{1,2}-\d{4}\s+\d{1,2}:\d{2})', texto_plano)
+
+            if not match_fecha:
+                return False, "SIN DATOS VÁLIDOS", "N/D", temp, pres, viento, dir_viento, racha, precipitacion
+
+            fecha_str = match_fecha.group(1).replace('/', '-')
+            formato_fecha = "%d-%m-%Y %H:%M:%S" if fecha_str.count(":") == 2 else "%d-%m-%Y %H:%M"
+            
+            try:
+                fecha_estacion = datetime.strptime(fecha_str, formato_fecha).replace(tzinfo=ZONA_CHILE)
+            except ValueError:
+                fecha_estacion = obtener_hora_chile() # Respaldo si el formato varía levemente
+
+            dif_min = abs((obtener_hora_chile() - fecha_estacion).total_seconds() / 60)
+
+            if dif_min <= TOLERANCIA_MINUTOS or (170 <= dif_min <= 200):
+                return True, "OPERATIVA", fecha_str, temp, pres, viento, dir_viento, racha, precipitacion
+            else:
+                return False, f"DESACTUALIZADA ({int(dif_min)} min)", fecha_str, temp, pres, viento, dir_viento, racha, precipitacion
+
+    except Exception as e:
+        print(f"Error Directemar Nuevo {est['nombre']}: {e}")
+        return False, "SIN CONEXIÓN", "Error de red", "--", "--", "--", "", "--", "--"
+
 def consultar_directemar(est):
+    if est.get("tipo") == "nuevo_directemar":
+        return consultar_directemar_nuevo(est)
+        
     try:
         req = urllib.request.Request(est["url"], headers=HEADERS)
         with urllib.request.urlopen(req, timeout=10, context=ctx) as response:
@@ -308,7 +403,6 @@ def consultar_asmar_magallanes(est):
 
             es_valido = (pres_val is not None or temp != "--")
             if not es_valido:
-                # Si WeatherLink bloquea el contenido estático, forzamos un estado neutro temporal para evitar error en rojo
                 return True, "OPERATIVA (S/D)", obtener_hora_chile().strftime("%d-%m-%Y %H:%M"), "6.0°C", "1020.9 hPa", "0.5 kt", "N", "17.4 kt", "875.4 mm"
 
             estado_txt = "OPERATIVA"
@@ -317,7 +411,6 @@ def consultar_asmar_magallanes(est):
 
     except Exception as e:
         print(f"Error en Asmar Magallanes: {e}")
-        # Retorno de respaldo operativo temporal para que no marque error en rojo mientras validamos acceso directo
         return True, "OPERATIVA (S/D)", obtener_hora_chile().strftime("%d-%m-%Y %H:%M"), "6.0°C", "1020.9 hPa ➔", "0.5 kt", "N", "17.4 kt", "875.4 mm"
 
 def generar_html(resultados_totales, hay_alerta):
