@@ -182,12 +182,6 @@ def consultar_directemar(est):
             html = page.content()
             browser.close()
 
-            # LÍNEA DE DEPURACIÓN PARA EDÉN
-            if "eden" in est["url"]:
-                print(f"--- HTML EXTRAÍDO DE EDÉN ---")
-                print(html[:1000])
-                print(f"-----------------------------")
-
             texto_plano = re.sub(r'<[^>]+>', ' ', html)
             texto_plano = texto_plano.replace('\xa5', ' ').replace('\xa0', ' ').replace('&nbsp;', ' ').replace('&deg;', '°').replace('&#176;', '°')
             texto_plano = re.sub(r'\s+', ' ', texto_plano).strip()
@@ -248,13 +242,15 @@ def consultar_directemar(est):
                 if val is not None:
                     precipitacion = f"{val:.1f} mm"
 
-            match_fecha = re.search(r'(?:Page\s+updated|Actualizado)\s+(\d{1,2}-\d{1,2}-\d{4}\s+\d{1,2}:\d{2}(?::\d{2})?)', texto_plano, re.IGNORECASE)
+            # Búsqueda flexible de fecha y hora formato DD-MM-YYYY HH:MM o similar
+            match_fecha = re.search(r'(?:Page\s+updated|Actualizado)?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4}\s+\d{1,2}:\d{2}(?::\d{2})?)', texto_plano, re.IGNORECASE)
             if not match_fecha:
-                if "eden" in est["url"]:
-                    print(f"Edén: No se encontró patrón de fecha. Texto plano: {texto_plano[:400]}")
+                match_fecha = re.search(r'(\d{1,2}[-/]\d{1,2}[-/]\d{4}\s+\d{1,2}:\d{2})', texto_plano)
+
+            if not match_fecha:
                 return False, "SIN DATOS VÁLIDOS", "N/D", temp, pres, viento, dir_viento, racha, precipitacion
 
-            fecha_str = match_fecha.group(1)
+            fecha_str = match_fecha.group(1).replace('/', '-')
             partes_f = fecha_str.split()
             if len(partes_f) == 2:
                 fecha_p, hora_p = partes_f
