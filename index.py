@@ -34,33 +34,38 @@ ctx.verify_mode = ssl.CERT_NONE
 ESTACIONES_DIRECTEMAR = [
     {
         "nombre": "Capitanía de Puerto Edén",
-        "url": "http://web.directemar.cl/met/jturno/estaciones/eden/index.htm",
+        "url": "http://serviciosonline.directemar.cl/meteomapa-/ficha-estacion/EDEN",
         "lat": -49.133,
         "lon": -74.433,
+        "tipo": "ficha_directemar"
     },
     {
         "nombre": "Capitanía de Puerto Puerto Natales",
         "url": "http://web.directemar.cl/met/jturno/estaciones/natales/index.htm",
         "lat": -51.733,
         "lon": -72.500,
+        "tipo": "clásico"
     },
     {
         "nombre": "Alcaldía de Mar Paso Timbales",
         "url": "http://web.directemar.cl/met/jturno/estaciones/timbales/index.htm",
         "lat": -52.283,
         "lon": -70.083,
+        "tipo": "clásico"
     },
     {
         "nombre": "Alcaldía de Mar Puerto Navarino",
         "url": "http://web.directemar.cl/met/jturno/estaciones/navarino/index.htm",
         "lat": -54.950,
         "lon": -68.316,
+        "tipo": "clásico"
     },
     {
         "nombre": "Alcaldía de Mar Puerto Corrientes",
         "url": "http://web.directemar.cl/met/jturno/estaciones/corrientes/index.htm",
         "lat": -53.983,
         "lon": -70.216,
+        "tipo": "clásico"
     },
 ]
 
@@ -171,6 +176,102 @@ def gestionar_historial_presion(nombre_estacion, presion_actual):
     else:
         return " ➔"
 
+def consultar_ficha_directemar(est):
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page(user_agent=HEADERS["User-Agent"])
+            page.goto(est["url"], timeout=30000, wait_until="domcontentloaded")
+            
+            page.wait_for_timeout(4000)
+            html = page.content()
+            browser.close()
+
+            texto_plano = re.sub(r'<[^>]+>', ' ', html)
+            texto_plano = texto_plano.replace('\xa5', ' ').replace('\xa0', ' ').replace('&nbsp;', ' ').replace('&deg;', '°').replace('&#176;', '°')
+            texto_plano = re.sub(r'\s+', ' ', texto_plano).strip()
+
+            temp, pres, viento, dir_viento, racha, precipitacion = "--", "--", "--", "", "--", "--"
+            pres_val = None
+
+            # Extracción de Temperatura
+            temp_match = re.search(r'Temperatura\s*([\-]?\d+(?:[.,]\d+)?)\s*°C', texto_plano, re.IGNORECASE)
+            if temp_match:
+                val = convertir_numero(temp_match.group(1))
+                if val is not None:
+                    temp = f"{val:.1f}°C"
+
+            # Extracción de Presión
+            pres_match = re.search(r'Presi[oó]n\s*([\-]?\d+(?:[.,]\d+)?)\s*hPa', texto_plano, re.IGNORECASE)
+            if pres_match:
+                pres_val = convertir_numero(pres_match.group(1))
+                if pres_val is not None:
+                    tendencia = gestionar_historial_presion(est["nombre"], pres_val)
+                    pres = f"{pres_val:.1f} hPa{tendencia}"
+
+            # Extracciones de Viento, Dirección y Racha (Formato ficha: 205° SW | 24 kts | Máx: 13.9 kts o similar)
+            viento_ficha_match = re.search(r'Viento\s*(?:(\d+(?:[.,]\d+)?)\s*°)?\s*([N,S,E,W]{1,3})?\s*\|\s*(\d+(?:[.,]\d+)?)\s*kts\s*\|\s*M[áa]x[:]?\s*(\d+(?:[.,]\d+)?)\s*kts', texto_plano, re.IGNORECASE)
+            if viento_ficha_match:
+                grados_v = convertir_numero(viento_ficha_match.group(1))
+                if grados_v is not None:
+                    dir_viento = grados_a_cardinal(grados_v)
+                elif viento_ficha_match.group(2):
+                    dir_viento = formatear_direccion(viento_ficha_match.group(2))
+                
+                v_val = convertir_numero(viento_ficha_match.group(3))
+                if v_val is not None:
+                    viento = f"{v_val:.1f} kt"
+                
+                r_val = convertir_numero(viento_ficha_match.group(4))
+                if r_val is not None:
+                    racha = f"{r_val:.1f} kt"
+            else:
+                # Búsquedas alternativas por separado si el orden varía ligeramente
+                v_alt = re.search(r'Viento[^\d]*(\d+(?:[.,]\d+)?)\s*kts', texto_plano, re.IGNORECASE)
+                if v_alt:
+                    val = convertir_numero(v_alt.group(1))
+                    if val is not None:
+                        viento = f"{val:.1f} kt"
+                
+                dir_alt = re.search(r'Viento[^\d]*\d+\s*°\s*([N,S,E,W]{1,3})', texto_plano, re.IGNORECASE)
+                if dir_alt:
+                    dir_viento = formatear_direccion(dir_alt.group(1))
+
+                r_alt = re.search(r'M[áa]x[:]?\s*(\d+(?:[.,]\d+)?)\s*kts', texto_plano, re.IGNORECASE)
+                if r_alt:
+                    val = convertir_numero(r_alt.group(1))
+                    if val is not None:
+                        racha = f"{val:.1f} kt"
+
+            # Extracción de Lluvia hoy
+            lluvia_match = re.search(r'Lluvia\s*hoy\s*(\d+(?:[.,]\d+)?)\s*mm', texto_plano, re.IGNORECASE)
+            if lluvia_match:
+                val = convertir_numero(lluvia_match.group(1))
+                if val is not None:
+                    precipitacion = f"{val:.1f} mm"
+
+            # Extracción de Observación Reciente (Fecha y Hora formato DD/MM/YYYY HH:MM)
+            match_fecha = re.search(r'(?:Observaci[oó]n\s*Reciente)\s*(\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2})', texto_plano, re.IGNORECASE)
+            if not match_fecha:
+                # Búsqueda genérica de fecha DD/MM/YYYY HH:MM por si cambia la etiqueta
+                match_fecha = re.search(r'(\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2})', texto_plano)
+
+            if not match_fecha:
+                return False, "SIN DATOS VÁLIDOS", "N/D", temp, pres, viento, dir_viento, racha, precipitacion
+
+            fecha_str = match_fecha.group(1)
+            fecha_estacion = datetime.strptime(fecha_str, "%d/%m/%Y %H:%M").replace(tzinfo=ZONA_CHILE)
+            dif_min = abs((obtener_hora_chile() - fecha_estacion).total_seconds() / 60)
+
+            if dif_min <= TOLERANCIA_MINUTOS or (170 <= dif_min <= 200):
+                return True, "OPERATIVA", fecha_str, temp, pres, viento, dir_viento, racha, precipitacion
+            else:
+                return False, f"DESACTUALIZADA ({int(dif_min)} min)", fecha_str, temp, pres, viento, dir_viento, racha, precipitacion
+
+    except Exception as e:
+        print(f"Error Playwright Ficha Directemar {est['nombre']}: {e}")
+        return False, "SIN CONEXIÓN", "Error de red", "--", "--", "--", "", "--", "--"
+
 def consultar_directemar(est):
     try:
         with sync_playwright() as p:
@@ -242,23 +343,11 @@ def consultar_directemar(est):
                 if val is not None:
                     precipitacion = f"{val:.1f} mm"
 
-            # Búsqueda flexible de fecha y hora formato DD-MM-YYYY HH:MM o similar
-            match_fecha = re.search(r'(?:Page\s+updated|Actualizado)?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4}\s+\d{1,2}:\d{2}(?::\d{2})?)', texto_plano, re.IGNORECASE)
-            if not match_fecha:
-                match_fecha = re.search(r'(\d{1,2}[-/]\d{1,2}[-/]\d{4}\s+\d{1,2}:\d{2})', texto_plano)
-
+            match_fecha = re.search(r'(?:Page\s+updated|Actualizado)\s+(\d{1,2}-\d{1,2}-\d{4}\s+\d{1,2}:\d{2}(?::\d{2})?)', texto_plano, re.IGNORECASE)
             if not match_fecha:
                 return False, "SIN DATOS VÁLIDOS", "N/D", temp, pres, viento, dir_viento, racha, precipitacion
 
-            fecha_str = match_fecha.group(1).replace('/', '-')
-            partes_f = fecha_str.split()
-            if len(partes_f) == 2:
-                fecha_p, hora_p = partes_f
-                sub_hora = hora_p.split(":")
-                if len(sub_hora[0]) == 1:
-                    sub_hora[0] = "0" + sub_hora[0]
-                    fecha_str = f"{fecha_p} {':'.join(sub_hora)}"
-
+            fecha_str = match_fecha.group(1)
             formato_fecha = "%d-%m-%Y %H:%M:%S" if fecha_str.count(":") == 2 else "%d-%m-%Y %H:%M"
             fecha_estacion = datetime.strptime(fecha_str, formato_fecha).replace(tzinfo=ZONA_CHILE)
             dif_min = abs((obtener_hora_chile() - fecha_estacion).total_seconds() / 60)
@@ -701,8 +790,14 @@ def ejecutar_monitoreo():
     hubo_fallas = False
 
     for est in ESTACIONES_DIRECTEMAR:
-        ok, estado, ultimo, temp, pres, viento, dir_viento, racha, precipitacion = consultar_directemar(est)
-        if not ok: hubo_fallas = True
+        if est.get("tipo") == "ficha_directemar":
+            ok, estado, ultimo, temp, pres, viento, dir_viento, racha, precipitacion = consultar_ficha_directemar(est)
+        else:
+            ok, estado, ultimo, temp, pres, viento, dir_viento, racha, precipitacion = consultar_directemar(est)
+        
+        if not ok: 
+            hubo_fallas = True
+            
         resultados_dict[est["nombre"]] = {
             "nombre": est["nombre"], "url": est["url"], "lat": est["lat"], "lon": est["lon"],
             "ok": ok, "estado": estado, "ultimo": ultimo, "temp": temp, "pres": pres,
@@ -711,7 +806,9 @@ def ejecutar_monitoreo():
 
     for est in ESTACIONES_EXTERNAS:
         ok, estado, ultimo, temp, pres, viento, dir_viento, racha, precipitacion = consultar_asmar_magallanes(est)
-        if not ok: hubo_fallas = True
+        if not ok: 
+            hubo_fallas = True
+            
         resultados_dict[est["nombre"]] = {
             "nombre": est["nombre"], "url": est["url"], "lat": est["lat"], "lon": est["lon"],
             "ok": ok, "estado": estado, "ultimo": ultimo, "temp": temp, "pres": pres,
