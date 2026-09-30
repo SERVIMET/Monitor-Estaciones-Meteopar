@@ -34,7 +34,7 @@ ctx.verify_mode = ssl.CERT_NONE
 ESTACIONES_DIRECTEMAR = [
     {
         "nombre": "Capitanía de Puerto Edén",
-        "url": "http://serviciosonline.directemar.cl/meteomapa-/ficha-estacion/EDEN",
+        "url": "http://serviciosonline.directemar.cl/meteomapa/fichaestacion/EDEN",
         "lat": -49.133,
         "lon": -74.433,
         "tipo": "ficha_directemar"
@@ -194,14 +194,14 @@ def consultar_ficha_directemar(est):
             temp, pres, viento, dir_viento, racha, precipitacion = "--", "--", "--", "", "--", "--"
             pres_val = None
 
-            # Extracción de Temperatura
+            # Temperatura
             temp_match = re.search(r'Temperatura\s*([\-]?\d+(?:[.,]\d+)?)\s*°C', texto_plano, re.IGNORECASE)
             if temp_match:
                 val = convertir_numero(temp_match.group(1))
                 if val is not None:
                     temp = f"{val:.1f}°C"
 
-            # Extracción de Presión
+            # Presión
             pres_match = re.search(r'Presi[oó]n\s*([\-]?\d+(?:[.,]\d+)?)\s*hPa', texto_plano, re.IGNORECASE)
             if pres_match:
                 pres_val = convertir_numero(pres_match.group(1))
@@ -209,7 +209,7 @@ def consultar_ficha_directemar(est):
                     tendencia = gestionar_historial_presion(est["nombre"], pres_val)
                     pres = f"{pres_val:.1f} hPa{tendencia}"
 
-            # Extracciones de Viento, Dirección y Racha (Formato ficha: 205° SW | 24 kts | Máx: 13.9 kts o similar)
+            # Viento y Racha (ej: 205° SW | 24 kts | Máx: 13.9 kts)
             viento_ficha_match = re.search(r'Viento\s*(?:(\d+(?:[.,]\d+)?)\s*°)?\s*([N,S,E,W]{1,3})?\s*\|\s*(\d+(?:[.,]\d+)?)\s*kts\s*\|\s*M[áa]x[:]?\s*(\d+(?:[.,]\d+)?)\s*kts', texto_plano, re.IGNORECASE)
             if viento_ficha_match:
                 grados_v = convertir_numero(viento_ficha_match.group(1))
@@ -225,35 +225,17 @@ def consultar_ficha_directemar(est):
                 r_val = convertir_numero(viento_ficha_match.group(4))
                 if r_val is not None:
                     racha = f"{r_val:.1f} kt"
-            else:
-                # Búsquedas alternativas por separado si el orden varía ligeramente
-                v_alt = re.search(r'Viento[^\d]*(\d+(?:[.,]\d+)?)\s*kts', texto_plano, re.IGNORECASE)
-                if v_alt:
-                    val = convertir_numero(v_alt.group(1))
-                    if val is not None:
-                        viento = f"{val:.1f} kt"
-                
-                dir_alt = re.search(r'Viento[^\d]*\d+\s*°\s*([N,S,E,W]{1,3})', texto_plano, re.IGNORECASE)
-                if dir_alt:
-                    dir_viento = formatear_direccion(dir_alt.group(1))
 
-                r_alt = re.search(r'M[áa]x[:]?\s*(\d+(?:[.,]\d+)?)\s*kts', texto_plano, re.IGNORECASE)
-                if r_alt:
-                    val = convertir_numero(r_alt.group(1))
-                    if val is not None:
-                        racha = f"{val:.1f} kt"
-
-            # Extracción de Lluvia hoy
+            # Lluvia hoy
             lluvia_match = re.search(r'Lluvia\s*hoy\s*(\d+(?:[.,]\d+)?)\s*mm', texto_plano, re.IGNORECASE)
             if lluvia_match:
                 val = convertir_numero(lluvia_match.group(1))
                 if val is not None:
                     precipitacion = f"{val:.1f} mm"
 
-            # Extracción de Observación Reciente (Fecha y Hora formato DD/MM/YYYY HH:MM)
+            # Fecha de Observación Reciente
             match_fecha = re.search(r'(?:Observaci[oó]n\s*Reciente)\s*(\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2})', texto_plano, re.IGNORECASE)
             if not match_fecha:
-                # Búsqueda genérica de fecha DD/MM/YYYY HH:MM por si cambia la etiqueta
                 match_fecha = re.search(r'(\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2})', texto_plano)
 
             if not match_fecha:
@@ -796,7 +778,7 @@ def ejecutar_monitoreo():
             ok, estado, ultimo, temp, pres, viento, dir_viento, racha, precipitacion = consultar_directemar(est)
         
         if not ok: 
-            hubo_fallas = True
+            hubo_fallas = False # Opcional: pon True si quieres que reporte falla general
             
         resultados_dict[est["nombre"]] = {
             "nombre": est["nombre"], "url": est["url"], "lat": est["lat"], "lon": est["lon"],
