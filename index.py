@@ -181,11 +181,18 @@ def consultar_ficha_directemar(est):
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             page = browser.new_page(user_agent=HEADERS["User-Agent"])
-            page.goto(est["url"], timeout=30000, wait_until="domcontentloaded")
             
-            page.wait_for_timeout(4000)
+            print(f"Intentando conectar a: {est['url']}")
+            response = page.goto(est["url"], timeout=40000, wait_until="domcontentloaded")
+            
+            if response:
+                print(f"Código HTTP recibido para Edén: {response.status}")
+            
+            page.wait_for_timeout(5000)
             html = page.content()
             browser.close()
+
+            print(f"Largo del HTML obtenido: {len(html)}")
 
             texto_plano = re.sub(r'<[^>]+>', ' ', html)
             texto_plano = texto_plano.replace('\xa5', ' ').replace('\xa0', ' ').replace('&nbsp;', ' ').replace('&deg;', '°').replace('&#176;', '°')
@@ -239,6 +246,7 @@ def consultar_ficha_directemar(est):
                 match_fecha = re.search(r'(\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2})', texto_plano)
 
             if not match_fecha:
+                print(f"Edén: No se encontró la fecha de observación. Texto plano parcial: {texto_plano[:300]}")
                 return False, "SIN DATOS VÁLIDOS", "N/D", temp, pres, viento, dir_viento, racha, precipitacion
 
             fecha_str = match_fecha.group(1)
@@ -778,7 +786,7 @@ def ejecutar_monitoreo():
             ok, estado, ultimo, temp, pres, viento, dir_viento, racha, precipitacion = consultar_directemar(est)
         
         if not ok: 
-            hubo_fallas = False # Opcional: pon True si quieres que reporte falla general
+            hubo_fallas = True
             
         resultados_dict[est["nombre"]] = {
             "nombre": est["nombre"], "url": est["url"], "lat": est["lat"], "lon": est["lon"],
