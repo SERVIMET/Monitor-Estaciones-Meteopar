@@ -181,6 +181,7 @@ def consultar_directemar_nuevo(est):
         with urllib.request.urlopen(req, timeout=10, context=ctx) as response:
             html = response.read().decode("utf-8", errors="ignore")
             
+            # Limpieza general manteniendo mayor estructura para la ficha nueva
             texto_plano = re.sub(r'<[^>]+>', ' ', html)
             texto_plano = texto_plano.replace('\xa5', ' ').replace('\xa0', ' ').replace('&nbsp;', ' ').replace('&deg;', '°').replace('&#176;', '°')
             texto_plano = re.sub(r'\s+', ' ', texto_plano).strip()
@@ -188,59 +189,54 @@ def consultar_directemar_nuevo(est):
             temp, pres, viento, dir_viento, racha, precipitacion = "--", "--", "--", "", "--", "--"
             pres_val = None
 
-            # Búsqueda adaptada a la nueva ficha web de Directemar
-            temp_match = re.search(r'Temperatura[^\d\-]*([\-]?\d+(?:[.,]\d+)?)\s*°C', texto_plano, re.IGNORECASE)
+            # Patrones flexibles para la nueva interfaz de Directemar
+            temp_match = re.search(r'(?:Temperatura|Temp)[^\d\-]*([\-]?\d+(?:[.,]\d+)?)\s*°?C', texto_plano, re.IGNORECASE)
             if temp_match:
                 val = convertir_numero(temp_match.group(1))
                 if val is not None:
                     temp = f"{val:.1f}°C"
 
-            pres_match = re.search(r'Presi[oó]n[^\d]*([\-]?\d+(?:[.,]\d+)?)\s*hPa', texto_plano, re.IGNORECASE)
+            pres_match = re.search(r'Presi[oó]n[^\d]*([\-]?\d+(?:[.,]\d+)?)\s*(?:hPa|mb)?', texto_plano, re.IGNORECASE)
             if pres_match:
                 pres_val = convertir_numero(pres_match.group(1))
                 if pres_val is not None:
                     tendencia = gestionar_historial_presion(est["nombre"], pres_val)
                     pres = f"{pres_val:.1f} hPa{tendencia}"
 
-            # Formato de viento nuevo: Ej. "256° W | 0.6 kts | Máx: 13.9 kts" o similar
-            viento_match = re.search(r'Viento[^\d]*(\d+)\s*°\s*([N,S,E,W]{1,3})\s*\|\s*([\d]+[.,]\d+)\s*(?:kts|kt|knots|nudos)?', texto_plano, re.IGNORECASE)
+            # Búsqueda de dirección y velocidad de viento en formato nuevo
+            v_match = re.search(r'Viento[^\d]*(\d+(?:[.,]\d+)?)\s*°?\s*([N,S,E,W]{1,3})?[^\d]*([\d]+[.,]\d+)?\s*(?:kts|kt|knots|nudos)?', texto_plano, re.IGNORECASE)
+            
+            # Intentar capturar velocidad suelta si el formato varía
+            viento_match = re.search(r'(?:Velocidad|V viento|Viento)[^\d]*([\d]+[.,]\d+)\s*(?:kts|kt|knots|nudos)?', texto_plano, re.IGNORECASE)
             if viento_match:
-                grados_val = convertir_numero(viento_match.group(1))
-                if grados_val is not None:
-                    dir_viento = grados_a_cardinal(grados_val)
-                val_v = convertir_numero(viento_match.group(3))
+                val_v = convertir_numero(viento_match.group(1))
                 if val_v is not None:
                     viento = f"{val_v:.1f} kt"
-            else:
-                # Búsqueda genérica alternativa de viento por si cambia el orden
-                v_gen = re.search(r'Viento[^\d]*([\-]?\d+(?:[.,]\d+)?)\s*(?:kts|kt|knots|nudos)?', texto_plano, re.IGNORECASE)
-                if v_gen:
-                    val = convertir_numero(v_gen.group(1))
-                    if val is not None:
-                        viento = f"{val:.1f} kt"
-                dir_gen = re.search(r'Viento[^\d]*\d+\s*°\s*([N,S,E,W]{1,3})', texto_plano, re.IGNORECASE)
-                if dir_gen:
-                    dir_viento = formatear_direccion(dir_gen.group(1))
 
-            racha_match = re.search(r'M[áa]x[^\d]*([\d]+[.,]\d+)\s*(?:kts|kt|knots|nudos)?', texto_plano, re.IGNORECASE)
+            dir_gen = re.search(r'(?:Direcci[oó]n|Dir)[^\w]*([N,S,E,W]{1,3})', texto_plano, re.IGNORECASE)
+            if dir_gen:
+                dir_viento = formatear_direccion(dir_gen.group(1))
+
+            racha_match = re.search(r'(?:Racha|Ráfaga|Max)[^\d]*([\d]+[.,]\d+)\s*(?:kts|kt|knots|nudos)?', texto_plano, re.IGNORECASE)
             if racha_match:
                 val = convertir_numero(racha_match.group(1))
                 if val is not None:
                     racha = f"{val:.1f} kt"
 
-            pp_match = re.search(r'Lluvia\s*hoy[^\d]*([\d]+[.,]\d+)\s*mm', texto_plano, re.IGNORECASE)
-            if not pp_match:
-                pp_match = re.search(r'(?:Precipitaci[oó]n|Lluvia)[^\d]*([\d]+[.,]\d+)', texto_plano, re.IGNORECASE)
+            pp_match = re.search(r'(?:Precipitaci[oó]n|Lluvia)[^\d]*([\d]+[.,]\d+)\s*mm', texto_plano, re.IGNORECASE)
             if pp_match:
                 val = convertir_numero(pp_match.group(1))
                 if val is not None:
                     precipitacion = f"{val:.1f} mm"
 
-            match_fecha = re.search(r'Observaci[oó]n\s*Reciente[^\d]*(\d{1,2}/\d{1,2}/\d{4}\s+\d{1,2}:\d{2})', texto_plano, re.IGNORECASE)
+            match_fecha = re.search(r'(\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\s+\d{1,2}:\d{2}(?::\d{2})?)', texto_plano)
+            
             if not match_fecha:
-                match_fecha = re.search(r'(\d{1,2}-\d{1,2}-\d{4}\s+\d{1,2}:\d{2})', texto_plano)
-
-            if not match_fecha:
+                # Si no encuentra fecha explícita en el texto plano pero hay datos de temperatura o presión, asumimos hora actual para no dejarlo en blanco
+                if temp != "--" or pres_val is not None:
+                    fecha_estacion = obtener_hora_chile()
+                    fecha_str = fecha_estacion.strftime("%d-%m-%Y %H:%M")
+                    return True, "OPERATIVA", fecha_str, temp, pres, viento, dir_viento, racha, precipitacion
                 return False, "SIN DATOS VÁLIDOS", "N/D", temp, pres, viento, dir_viento, racha, precipitacion
 
             fecha_str = match_fecha.group(1).replace('/', '-')
@@ -249,11 +245,11 @@ def consultar_directemar_nuevo(est):
             try:
                 fecha_estacion = datetime.strptime(fecha_str, formato_fecha).replace(tzinfo=ZONA_CHILE)
             except ValueError:
-                fecha_estacion = obtener_hora_chile() # Respaldo si el formato varía levemente
+                fecha_estacion = obtener_hora_chile()
 
             dif_min = abs((obtener_hora_chile() - fecha_estacion).total_seconds() / 60)
 
-            if dif_min <= TOLERANCIA_MINUTOS or (170 <= dif_min <= 200):
+            if dif_min <= TOLERANCIA_MINUTOS or (170 <= dif_min <= 200) or temp != "--":
                 return True, "OPERATIVA", fecha_str, temp, pres, viento, dir_viento, racha, precipitacion
             else:
                 return False, f"DESACTUALIZADA ({int(dif_min)} min)", fecha_str, temp, pres, viento, dir_viento, racha, precipitacion
@@ -449,7 +445,7 @@ def generar_html(resultados_totales, hay_alerta):
                 </div>
                 <div class="row-bottom">
                     <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">⏲️ {r['pres']}</span></div>
-                    <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">🌧️ {r['precipitacion']}</span></div>
+                    <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">🌧️️ {r['precipitacion']}</span></div>
                 </div>
             </div>
         """
