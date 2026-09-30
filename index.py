@@ -7,6 +7,7 @@ import ssl
 import subprocess
 import time
 import urllib.request
+from playwright.sync_api import sync_playwright
 
 # ==========================================
 # CONFIGURACIÓN GENERAL
@@ -33,38 +34,33 @@ ctx.verify_mode = ssl.CERT_NONE
 ESTACIONES_DIRECTEMAR = [
     {
         "nombre": "Capitanía de Puerto Edén",
-        "url": "https://serviciosonline.directemar.cl/meteomapa/fichaEstacion/EDEN",
+        "url": "http://web.directemar.cl/met/jturno/estaciones/eden/index.htm",
         "lat": -49.133,
         "lon": -74.433,
-        "tipo": "nuevo_directemar"
     },
     {
         "nombre": "Capitanía de Puerto Puerto Natales",
         "url": "http://web.directemar.cl/met/jturno/estaciones/natales/index.htm",
         "lat": -51.733,
         "lon": -72.500,
-        "tipo": "antiguo_directemar"
     },
     {
         "nombre": "Alcaldía de Mar Paso Timbales",
         "url": "http://web.directemar.cl/met/jturno/estaciones/timbales/index.htm",
         "lat": -52.283,
         "lon": -70.083,
-        "tipo": "antiguo_directemar"
     },
     {
         "nombre": "Alcaldía de Mar Puerto Navarino",
         "url": "http://web.directemar.cl/met/jturno/estaciones/navarino/index.htm",
         "lat": -54.950,
         "lon": -68.316,
-        "tipo": "antiguo_directemar"
     },
     {
         "nombre": "Alcaldía de Mar Puerto Corrientes",
         "url": "http://web.directemar.cl/met/jturno/estaciones/corrientes/index.htm",
         "lat": -53.983,
         "lon": -70.216,
-        "tipo": "antiguo_directemar"
     },
 ]
 
@@ -175,98 +171,18 @@ def gestionar_historial_presion(nombre_estacion, presion_actual):
     else:
         return " ➔"
 
-def consultar_directemar_nuevo(est):
-    try:
-        req = urllib.request.Request(est["url"], headers=HEADERS)
-        with urllib.request.urlopen(req, timeout=10, context=ctx) as response:
-            html = response.read().decode("utf-8", errors="ignore")
-            
-            # Limpieza general manteniendo mayor estructura para la ficha nueva
-            texto_plano = re.sub(r'<[^>]+>', ' ', html)
-            texto_plano = texto_plano.replace('\xa5', ' ').replace('\xa0', ' ').replace('&nbsp;', ' ').replace('&deg;', '°').replace('&#176;', '°')
-            texto_plano = re.sub(r'\s+', ' ', texto_plano).strip()
-
-            temp, pres, viento, dir_viento, racha, precipitacion = "--", "--", "--", "", "--", "--"
-            pres_val = None
-
-            # Patrones flexibles para la nueva interfaz de Directemar
-            temp_match = re.search(r'(?:Temperatura|Temp)[^\d\-]*([\-]?\d+(?:[.,]\d+)?)\s*°?C', texto_plano, re.IGNORECASE)
-            if temp_match:
-                val = convertir_numero(temp_match.group(1))
-                if val is not None:
-                    temp = f"{val:.1f}°C"
-
-            pres_match = re.search(r'Presi[oó]n[^\d]*([\-]?\d+(?:[.,]\d+)?)\s*(?:hPa|mb)?', texto_plano, re.IGNORECASE)
-            if pres_match:
-                pres_val = convertir_numero(pres_match.group(1))
-                if pres_val is not None:
-                    tendencia = gestionar_historial_presion(est["nombre"], pres_val)
-                    pres = f"{pres_val:.1f} hPa{tendencia}"
-
-            # Búsqueda de dirección y velocidad de viento en formato nuevo
-            v_match = re.search(r'Viento[^\d]*(\d+(?:[.,]\d+)?)\s*°?\s*([N,S,E,W]{1,3})?[^\d]*([\d]+[.,]\d+)?\s*(?:kts|kt|knots|nudos)?', texto_plano, re.IGNORECASE)
-            
-            # Intentar capturar velocidad suelta si el formato varía
-            viento_match = re.search(r'(?:Velocidad|V viento|Viento)[^\d]*([\d]+[.,]\d+)\s*(?:kts|kt|knots|nudos)?', texto_plano, re.IGNORECASE)
-            if viento_match:
-                val_v = convertir_numero(viento_match.group(1))
-                if val_v is not None:
-                    viento = f"{val_v:.1f} kt"
-
-            dir_gen = re.search(r'(?:Direcci[oó]n|Dir)[^\w]*([N,S,E,W]{1,3})', texto_plano, re.IGNORECASE)
-            if dir_gen:
-                dir_viento = formatear_direccion(dir_gen.group(1))
-
-            racha_match = re.search(r'(?:Racha|Ráfaga|Max)[^\d]*([\d]+[.,]\d+)\s*(?:kts|kt|knots|nudos)?', texto_plano, re.IGNORECASE)
-            if racha_match:
-                val = convertir_numero(racha_match.group(1))
-                if val is not None:
-                    racha = f"{val:.1f} kt"
-
-            pp_match = re.search(r'(?:Precipitaci[oó]n|Lluvia)[^\d]*([\d]+[.,]\d+)\s*mm', texto_plano, re.IGNORECASE)
-            if pp_match:
-                val = convertir_numero(pp_match.group(1))
-                if val is not None:
-                    precipitacion = f"{val:.1f} mm"
-
-            match_fecha = re.search(r'(\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\s+\d{1,2}:\d{2}(?::\d{2})?)', texto_plano)
-            
-            if not match_fecha:
-                # Si no encuentra fecha explícita en el texto plano pero hay datos de temperatura o presión, asumimos hora actual para no dejarlo en blanco
-                if temp != "--" or pres_val is not None:
-                    fecha_estacion = obtener_hora_chile()
-                    fecha_str = fecha_estacion.strftime("%d-%m-%Y %H:%M")
-                    return True, "OPERATIVA", fecha_str, temp, pres, viento, dir_viento, racha, precipitacion
-                return False, "SIN DATOS VÁLIDOS", "N/D", temp, pres, viento, dir_viento, racha, precipitacion
-
-            fecha_str = match_fecha.group(1).replace('/', '-')
-            formato_fecha = "%d-%m-%Y %H:%M:%S" if fecha_str.count(":") == 2 else "%d-%m-%Y %H:%M"
-            
-            try:
-                fecha_estacion = datetime.strptime(fecha_str, formato_fecha).replace(tzinfo=ZONA_CHILE)
-            except ValueError:
-                fecha_estacion = obtener_hora_chile()
-
-            dif_min = abs((obtener_hora_chile() - fecha_estacion).total_seconds() / 60)
-
-            if dif_min <= TOLERANCIA_MINUTOS or (170 <= dif_min <= 200) or temp != "--":
-                return True, "OPERATIVA", fecha_str, temp, pres, viento, dir_viento, racha, precipitacion
-            else:
-                return False, f"DESACTUALIZADA ({int(dif_min)} min)", fecha_str, temp, pres, viento, dir_viento, racha, precipitacion
-
-    except Exception as e:
-        print(f"Error Directemar Nuevo {est['nombre']}: {e}")
-        return False, "SIN CONEXIÓN", "Error de red", "--", "--", "--", "", "--", "--"
-
 def consultar_directemar(est):
-    if est.get("tipo") == "nuevo_directemar":
-        return consultar_directemar_nuevo(est)
-        
     try:
-        req = urllib.request.Request(est["url"], headers=HEADERS)
-        with urllib.request.urlopen(req, timeout=10, context=ctx) as response:
-            html = response.read().decode("utf-8", errors="ignore")
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page(user_agent=HEADERS["User-Agent"])
+            page.goto(est["url"], timeout=30000, wait_until="domcontentloaded")
             
+            # Esperar un momento a que cargue el contenido dinámico si lo hubiera
+            page.wait_for_timeout(2000)
+            html = page.content()
+            browser.close()
+
             texto_plano = re.sub(r'<[^>]+>', ' ', html)
             texto_plano = texto_plano.replace('\xa5', ' ').replace('\xa0', ' ').replace('&nbsp;', ' ').replace('&deg;', '°').replace('&#176;', '°')
             texto_plano = re.sub(r'\s+', ' ', texto_plano).strip()
@@ -350,7 +266,7 @@ def consultar_directemar(est):
                 return False, f"DESACTUALIZADA ({int(dif_min)} min)", fecha_str, temp, pres, viento, dir_viento, racha, precipitacion
 
     except Exception as e:
-        print(f"Error Directemar {est['nombre']}: {e}")
+        print(f"Error Playwright Directemar {est['nombre']}: {e}")
         return False, "SIN CONEXIÓN", "Error de red", "--", "--", "--", "", "--", "--"
 
 def consultar_asmar_magallanes(est):
@@ -432,7 +348,7 @@ def generar_html(resultados_totales, hay_alerta):
         footer_texto = f"Reporte: {r['ultimo']}"
 
         if r['dir_viento']:
-            viento_contenido = f'<span style="display: block; font-size: 0.58em; color: var(--wind-color, #1d4ed8); font-weight: 800; line-height: 1.1;">🌬️ {r["dir_viento"]}</span><span style="display: block; font-size: 0.72em; font-weight: 700; line-height: 1.1;">{r["viento"]}</span>'
+            viento_contenido = f'<span style="display: block; font-size: 0.58em; color: var(--wind-color, #1d4ed8); font-weight: 800; line-height: 1.1;">🌬 {r["dir_viento"]}</span><span style="display: block; font-size: 0.72em; font-weight: 700; line-height: 1.1;">{r["viento"]}</span>'
         else:
             viento_contenido = f'<span style="display: block; font-size: 0.58em; color: transparent; font-weight: 800; line-height: 1.1; user-select: none;">-</span><span style="display: block; font-size: 0.72em; font-weight: 700; line-height: 1.1;">{r["viento"]}</span>'
 
@@ -445,7 +361,7 @@ def generar_html(resultados_totales, hay_alerta):
                 </div>
                 <div class="row-bottom">
                     <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">⏲️ {r['pres']}</span></div>
-                    <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">🌧️️ {r['precipitacion']}</span></div>
+                    <div class="item-box"><span style="font-size: 0.68em; font-weight: 700;">🌧️ {r['precipitacion']}</span></div>
                 </div>
             </div>
         """
@@ -467,7 +383,7 @@ def generar_html(resultados_totales, hay_alerta):
         """
 
     alerta_class = "alerta-activa" if hay_alerta else ""
-    alerta_banner = '<div class="banner-alerta">⚠️ ¡ATENCIÓN: HAY ESTACIONES CON FALLAS O DESACTUALIZADAS! ⚠️</div>' if hay_alerta else ""
+    alerta_banner = '<div class="banner-alerta">⚠ ¡ATENCIÓN: HAY ESTACIONES CON FALLAS O DESACTUALIZADAS! ⚠️</div>' if hay_alerta else ""
     hora_actual_chile = obtener_hora_chile().strftime("%d-%m-%Y %H:%M:%S")
 
     html = f"""<!DOCTYPE html>
@@ -705,7 +621,7 @@ def generar_html(resultados_totales, hay_alerta):
         {cards_html}
     </div>
     <div style="text-align: center;">
-        <div class="footer-dev">Desarrollado por Sgto 2° (Met.) Luis Diego Achurra Garcés</div>
+        <div class="footer-dev">Desarrollado por Luis Diego Achurra</div>
     </div>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
